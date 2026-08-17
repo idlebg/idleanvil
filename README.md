@@ -11,21 +11,27 @@ design.
 construct → inspect → compute signing data → export → sign elsewhere → import signatures → finalize
 ```
 
+**Live demo: [idlebg.com/idleanvil](https://idlebg.com/idleanvil/)** — nothing to
+install, and the page talks to no one. Deep links open straight into a workspace:
+[#multisig](https://idlebg.com/idleanvil/#multisig) ·
+[#signing](https://idlebg.com/idleanvil/#signing) ·
+[#inspector](https://idlebg.com/idleanvil/#inspector) ·
+[#script](https://idlebg.com/idleanvil/#script)
+
 ![idleAnvil — the Transaction workspace](docs/screenshots/01-transaction.png)
 
 ## Running it
 
-Open `index.html` in Chrome, Edge or Firefox. That is the entire setup. No server, no
-build step, no CDN, no dependencies — everything is plain classic scripts, so it works
-straight off `file://`.
+Use the [live demo](https://idlebg.com/idleanvil/), or open `index.html` locally in
+Chrome, Edge or Firefox — that is the entire setup. No server, no build step, no CDN,
+no dependencies; everything is plain classic scripts, so it works straight off
+`file://`.
 
-It makes **no network requests at all** unless you explicitly connect it to a node in
-the **Node** workspace. The header pill always tells you which state you are in.
+Either way it makes **no network requests at all** unless you explicitly connect it to
+a node in the **Node** workspace. The header pill always tells you which state you are
+in, and the whole state persists in your browser's localStorage between visits.
 
-Workspaces deep-link: `index.html#multisig`, `#signing`, `#inspector`, `#script` … open
-straight into that workspace.
-
-## Workspaces
+## Workspaces at a glance
 
 | Workspace | What it does |
 | --- | --- |
@@ -43,16 +49,186 @@ straight into that workspace.
 | **Multisig** | m-of-n wallet crafter from public keys, with every script variant and a live address diff |
 | **Node** | Optional live chain data over an Electrum WebSocket — fees, UTXOs, prevout fetch, guarded broadcast |
 
-A fixed bottom console always shows size, vSize, weight, input/output totals, fee,
-sat/vB, the live unsigned TX hex, the live PSBT base64, and validation status.
+## The workspaces in detail
 
-## Screenshots
+### Transaction
 
-| | |
-| --- | --- |
-| ![Signing Data](docs/screenshots/02-signing.png) **Signing Data** — preimage, digest and `z` per input, with the exact commitment breakdown | ![Script Lab](docs/screenshots/03-script-lab.png) **Script Lab** — opcode palette, syntax-highlighted ASM, derived P2SH/P2WSH/tapleaf forms |
-| ![Inspector](docs/screenshots/04-inspector.png) **Inspector** — byte-level colour-coded decode of any transaction | ![Multisig](docs/screenshots/05-multisig.png) **Multisig crafter** — every m-of-n script variant at once, with a live address avalanche diff |
-| ![Validation](docs/screenshots/06-validation.png) **Validation** — consensus and relay-policy findings plus the sighash commitment matrix | |
+The home view. Header fields cover nVersion (clamped to the standard 1–3 in normal
+mode; any int32 in forensic), nLockTime with a live height/time interpretation and a
+date helper, the network selector, serialization mode (auto / legacy / segwit) and the
+PSBT version. Around them: a network ribbon; a **pipeline strip** (construct → sign →
+finalize) derived from actual state — each step lights up as it completes and clicking
+one jumps to the right workspace; **stat tiles** for vSize (with a base/witness meter),
+weight against the 400k WU standardness budget, fee and rate, the segwit saving, and
+open findings; a **value-flow diagram** of inputs → outputs with proportional bars —
+click any row to jump to its card; the forensic control panel; and one-click demo
+transactions (P2WPKH spend, OP_RETURN, taproot, multisig) to start from something real.
+
+### Inputs
+
+One card per input. The outpoint (txid/vout), prevout amount and scriptPubKey — with
+the script rendered as syntax-highlighted ASM and its type detected live. nSequence
+comes with presets (Final · RBF · locktime-only · CSV 144) and a plain-English
+explanation of what the current value actually signals. Below: redeemScript and
+witnessScript fields; a full **taproot block** (internal key, merkle root, tapleaf
+script and version, control block, annex) that derives the tweak, output key and
+address as you type; signature settings (ECDSA/Schnorr, sighash type, ANYONECANPAY,
+plus a forensic custom sighash byte and scriptCode override); manual scriptSig and
+witness-stack editors; PSBT material (partial signatures, taproot signatures, BIP32
+derivations, the full parent transaction); and a derived-context panel showing the
+exact scriptCode and hash algorithm this input's signature will use. With a node
+connected, **Fetch prevout** fills amount, script and parent transaction in one click.
+
+### Outputs
+
+Amounts in sats with a live BTC mirror, **send remaining** and subtract-fee helpers.
+Four creation modes: **address** (validated against the selected network, with the
+reason when it fails), **template** — 30 script templates spanning single-key forms,
+multisig, tapscripts, CLTV/CSV timelocks, hashlocks, a full HTLC, a CSV vault,
+degrading multisig, data-carriers, P2A and arbitrary witness programs — **raw ASM**
+(opcode names, `<hex>` pushes, `'strings'`, numbers), and a dedicated **OP_RETURN
+builder** with six payload encodings, push-encoding control, one-click protocol
+prefixes (Omni, Runes, Stacks…) and, in forensic mode, multi-push and non-minimal
+encodings. The resolved scriptPubKey renders underneath with dust and zero-value
+badges.
+
+### Script Lab
+
+![Script Lab](docs/screenshots/03-script-lab.png)
+
+An opcode palette grouped by category — hover any chip for its documentation and hex
+value; reserved and disabled opcodes join the palette in forensic mode. Build on a
+drag-reorderable canvas or type ASM/hex directly; both stay in sync in either
+direction. The derived panel computes the script's detected type, SHA256 and HASH160,
+its P2SH and P2WSH addresses and scriptPubKeys, and its tapleaf hash — and one click
+sends the result to an output, or to an input as redeemScript, witnessScript, tapleaf
+or scriptSig.
+
+### Signing Data
+
+![Signing Data](docs/screenshots/02-signing.png)
+
+Pick an input and get everything an external signer needs: the exact preimage bytes,
+the intermediate hashes (hashPrevouts / hashSequence / hashOutputs for BIP143;
+sha_prevouts / sha_amounts / sha_scriptpubkeys / sha_sequences / sha_outputs for
+BIP341), the single SHA256, and the final digest **z**. The algorithm — legacy, BIP143
+or BIP341 — is chosen from the prevout automatically, with warnings when required data
+is missing. A **commitment table** shows precisely which transaction fields this
+signature covers under the selected sighash type. Export signing JSON for one input or
+all, or generate a ready-to-run signer in six flavours: Python/coincurve, pure-Python
+ecdsa, python-bitcoinlib (which recomputes the sighash independently and asserts it
+matches), JavaScript/@noble/curves, Bitcoin Core CLI, and verify-only.
+
+### PSBT Lab
+
+The transaction as a live PSBT — v0 (BIP174) or v2 (BIP370) — in base64 and hex, with
+a binary `.psbt` download. Paste or drop any PSBT to decode it key by key with
+human-readable values (amounts, script types, sighash names, derivation paths, witness
+stacks) and a per-input signature diff against what you are building; one click loads
+it into the editor. Bitcoin Core helpers print `decodepsbt`, `analyzepsbt`,
+`walletprocesspsbt`, `finalizepsbt`, `testmempoolaccept` and `sendrawtransaction`
+with your actual data already filled in.
+
+### Finalize
+
+Five import routes: a signed **PSBT** (merge signatures, or replace the transaction
+outright), a **DER signature** + pubkey (verified against `z` before it attaches), a
+**Schnorr signature** (64 or 65 bytes, key or script path), raw **r/s** (DER-encoded
+for you, with optional low-S normalisation), and **signing JSON** (single object or
+array). The assembler then builds canonical unlocking data per input — P2PKH/P2PK
+scriptSigs, P2WPKH witnesses, P2SH and its nested-segwit forms, P2WSH multisig with
+the BIP147 empty dummy and signatures in key order, and taproot key-path or
+script-path witnesses with positional CHECKSIGADD slots — and reports the **actual**
+(no longer estimated) size, fee and rate for the final hex.
+
+### Inspector
+
+![Inspector](docs/screenshots/04-inspector.png)
+
+The serialized transaction — the one you are building, or any pasted hex — as a hex
+grid where every byte is colour-coded by field. Hover or click a byte to see the field
+it belongs to, its offset, length, raw bytes and decoded value; a structure table
+lists every field with offsets. Decodes segwit and legacy alike, computes
+txid / wtxid / weight, and can load whatever you pasted into the editor.
+
+### Validation
+
+![Validation](docs/screenshots/06-validation.png)
+
+Every finding in one list, graded VALID / NON-STANDARD / INVALID / UNKNOWN: structural
+rules (zero inputs or outputs, duplicate outpoints, malformed txids), script
+consistency (redeemScript vs the P2SH hash, witnessScript vs the P2WSH program, the
+taproot tweak vs the output key), signature checks (DER strictness, low-S, sighash
+byte legality per input type), economics (fee sanity, Bitcoin Core's exact dust
+thresholds, OP_RETURN datacarrier policy, the weight and minimum-size rules) and
+locktime/sequence coherence. Below it, the **sighash commitment matrix**: for the
+selected input's algorithm, exactly which fields every sighash type commits to.
+
+### Raw Lab
+
+A hash calculator (SHA256, SHA256d and its reversed form, RIPEMD-160, HASH160, SHA-1,
+plus any BIP340 tagged hash) over hex, UTF-8, ASCII or base64 input. **DER surgery**:
+decode a signature into r and s, low-S verdict, the N−s complement, the trailing
+sighash byte, every strictness deviation, and the two candidate R points for its
+x-coordinate. An r/s → DER builder with low-S normalisation; address ↔ script
+conversion in both directions; a taproot bench (leaf hash, tweak, output key, address
+and control block from raw parts); **ECDSA and Schnorr verification** against any
+digest, with one click to fill `z` from the current input; and byte utilities
+(reverse, varint, CScriptNum, u32/u64 LE, base64, text, push encoding).
+
+### Toolkit
+
+Output **descriptors** — eleven BIP380 patterns with the checksum computed, verified
+and corrected, plus descriptors derived from the transaction you are building. An
+**extended-key decoder** for xpub/ypub/zpub/tpub/vpub… (version, depth, parent
+fingerprint, child number, chain code, key, own fingerprint — private keys are
+recognised and their material deliberately withheld). A **taproot tree builder**: any
+number of leaves → balanced merkle tree, root, tweak, output key, address, and a
+control block + merkle path per leaf, with one-click NUMS and apply-to-input. Unit
+conversion (sat ↔ bit ↔ mBTC ↔ BTC with a live dust check — sub-sat input is refused,
+never silently truncated), base conversion (decimal / hex / binary / octal / base58 /
+base64, CScriptNum, varint, little-endian), a **locktime & sequence lab**
+(interpretation, ETAs, date → locktime, BIP68 relative-timelock encode/decode), a
+size & fee **estimator** for arbitrary input/output mixes, a **public-key toolkit**
+(compress ↔ decompress ↔ x-only, parity, hashes, every address form), block-style
+**merkle roots** (with the CVE-2012-2459 duplicate rule), and a **script analyser**
+(type, size, worst-case sigops, OP_IF nesting, and the consensus limits it is near).
+
+### Multisig
+
+![Multisig crafter](docs/screenshots/05-multisig.png)
+
+Builds the receiving side of an m-of-n wallet **from public keys only**. Every key is
+validated on-curve with the reason when it fails; keys can be excluded and re-included,
+reordered, or BIP67-sorted (`multi` vs `sortedmulti` — toggle it to see why sorting
+exists). **All five script forms are computed at once** — bare multisig, P2SH,
+P2SH-P2WSH, P2WSH and a taproot `OP_CHECKSIGADD` k-of-n — each with its address,
+output size, spend cost in vbytes, spending template, standardness verdict and a
+checksummed descriptor. The headline address renders character by character with
+changes highlighted; **Flip one digit** mutates a random hex digit in a random key so
+you can watch ~90 % of the address change, with undo and a fourteen-state history
+trail. One click sends the address to an output, sets an input up to spend it (with a
+signature slot pre-seeded per cosigner), opens the script in Script Lab, checks the
+address against a connected node, or downloads a wallet JSON with every variant.
+
+### Node
+
+Optional and off by default. Speaks the Electrum protocol over WebSocket (Fulcrum's
+`ws =` / `wss =` listener) with a configurable endpoint per network. On connect the
+server's **genesis hash is checked** against the selected network — a mismatch gets a
+loud warning instead of quietly wrong data. Once live: a fee table across
+confirmation targets showing the resulting fee for *your* transaction with one-click
+"use this rate"; UTXO scans by address or script with add-as-input; transaction
+fetch / decode / spend-from; per-input prevout fetch; and broadcast behind a mandatory
+confirmation dialog that lists every destination — on mainnet you must additionally
+type `BROADCAST`. Every request and response appears in the traffic log.
+
+### Always on screen
+
+A fixed bottom console tracks size, vSize, weight, input/output totals, fee and rate,
+the live unsigned hex, the live PSBT base64 and the current validation verdict —
+whatever workspace you are in. Keys `1`–`9`, `0`, `-`, `=` and `m` switch workspaces;
+`Ctrl+S` / `Ctrl+O` save and open project files; `Ctrl+E` copies the unsigned hex.
 
 ## Networks
 
