@@ -22,10 +22,12 @@ install, and the page talks to no one. Deep links open straight into a workspace
 
 ## Running it
 
-Use the [live demo](https://idlebg.com/idleanvil/), or open `index.html` locally in
-Chrome, Edge or Firefox — that is the entire setup. No server, no build step, no CDN,
-no dependencies; everything is plain classic scripts, so it works straight off
-`file://`.
+Use the [live demo](https://idlebg.com/idleanvil/), or run it locally: download
+[**v1.0**](https://github.com/idlebg/idleanvil/archive/refs/tags/v1.0.zip) (all
+versions on the [releases page](https://github.com/idlebg/idleanvil/releases)), unzip,
+and open `index.html` in Chrome, Edge or Firefox — that is the entire setup. No
+server, no build step, no CDN, no dependencies; everything is plain classic scripts,
+so it works straight off `file://`.
 
 Either way it makes **no network requests at all** unless you explicitly connect it to
 a node in the **Node** workspace. The header pill always tells you which state you are
