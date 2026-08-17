@@ -49,6 +49,44 @@ in, and the whole state persists in your browser's localStorage between visits.
 | **Multisig** | m-of-n wallet crafter from public keys, with every script variant and a live address diff |
 | **Node** | Optional live chain data over an Electrum WebSocket — fees, UTXOs, prevout fetch, guarded broadcast |
 
+## Your first transaction — explained like you're six
+
+Think of your bitcoin as **coins inside little glass boxes**. Everyone can see the
+boxes, but each one only opens for the person holding the right key. Making a
+transaction means: open some boxes, pour the coins into new boxes with other people's
+locks on them, and leave a small tip on the table so the miners will carry it.
+
+idleAnvil is the workbench where you prepare all of that. It never holds your key —
+it writes a note, and your key signs the note somewhere else.
+
+1. **Pick the boxes to open.** In **Inputs**, describe the coin you are spending: the
+   txid (the box's serial number), the vout (which slot in that box), how much is
+   inside, and its scriptPubKey (the shape of the lock). Connected to a node? Press
+   **Fetch prevout from node** and it fills all of that in for you.
+2. **Say where the coins go.** In **Outputs**, paste the destination address and an
+   amount. Usually you add a second output back to yourself — the *change*, like the
+   coins a vending machine returns.
+3. **The tip sets itself.** You never type a fee anywhere. Whatever the inputs hold
+   and the outputs don't claim is the miners' tip: `inputs − outputs = fee`. The
+   bottom bar shows it live in sat/vB, and **Send remaining** does the arithmetic.
+4. **The anvil writes the permission slip.** Open **Signing Data**. The long number
+   called **z** is a fingerprint of everything you just decided — signing z means
+   agreeing to exactly this transaction and no other.
+5. **Take the slip to your key.** Export the PSBT (or copy z, or grab one of the
+   generated signer scripts) and sign wherever your key lives — Bitcoin Core, a
+   hardware wallet, a few lines of Python. idleAnvil has no key slot, on purpose.
+6. **Bring the signature back.** In **Finalize**, paste the signed PSBT — or the DER,
+   Schnorr, r/s or JSON forms. Signatures are checked against z before they attach.
+7. **Hammer it together.** Press **Assemble** — the signatures get packed into the
+   scriptSig and witness in exactly the right order, and the final hex appears with
+   its *actual* size and fee.
+8. **Mail it.** Broadcast from the **Node** workspace — it lists every destination
+   and asks you to confirm, and on mainnet you must literally type `BROADCAST` — or
+   copy the hex into `bitcoin-cli sendrawtransaction`.
+
+Practice on **testnet or regtest** first: same rules, play money. The **Validation**
+workspace is the grown-up checking your homework at every step.
+
 ## The workspaces in detail
 
 ### Transaction
@@ -301,8 +339,23 @@ a verify-only variant. Each prints JSON in exactly the shape Finalize imports.
 
 ## Connecting a node (optional)
 
-The Node workspace speaks the **Electrum protocol over WebSocket** (Fulcrum's
-`ws = <port>` listener; a browser cannot open plain TCP or SSL Electrum ports).
+**Local WebSocket support is built in** — idleAnvil ships with a complete
+Electrum-over-WebSocket client; the only thing you configure is the server side.
+Browsers cannot open raw TCP or SSL sockets, so your Fulcrum needs a WebSocket
+listener enabled:
+
+```ini
+# fulcrum.conf
+ws = 50002       # what idleAnvil connects to  (use wss = <port> for TLS)
+tcp = 50001      # fine for Electrum wallets — a browser cannot use these two
+ssl = 50003
+```
+
+Default endpoints are `ws://127.0.0.1:50002` for testnet3/testnet4, `:50003` for
+signet, `:50004` for mainnet and `:50001` for regtest — all editable per network in
+the workspace. Modern browsers exempt `127.0.0.1` from mixed-content blocking, so
+even the hosted demo at idlebg.com can talk to a Fulcrum running on *your own*
+machine; for a remote server, put it behind TLS and use a `wss://` endpoint.
 Verified against Fulcrum 2.1.1.
 
 What connecting adds: chain height and live block notifications · `estimatefee` across
@@ -368,6 +421,14 @@ verify.js             regression harness — `node verify.js`
 - Validation reports relay-policy defaults. Individual nodes and miners may differ.
 - Verify anything independently before broadcasting on mainnet. This is a bench, not an
   authority.
+
+## Contributing
+
+Keep it dependency-free and boring to deploy: plain classic scripts, no build step,
+no bundler, nothing fetched at runtime. Before opening a PR, run `node verify.js`
+(the 90-check harness must stay green) and load `index.html` with a clean console.
+Bug reports that include a transaction hex, a PSBT, or a failing `verify.js`
+assertion are the most actionable kind.
 
 ## License
 
