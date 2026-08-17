@@ -3743,6 +3743,9 @@
   Base58Check · Bech32 (BIP173) · Bech32m (BIP350) · transaction serialization (BIP144) · script assembler and disassembler ·
   legacy, BIP143 and BIP341 signature hashes · BIP174 and BIP370 PSBT · BIP341 taproot tweaking and tapleaf hashing.
   All of it is in the js/ files next to this page; nothing is fetched. <span class="mono">node verify.js</span> runs the in-repo regression checks.</p>
+  <div class="subhead mt-lg">Source &amp; license</div>
+  <p>MIT-licensed. Source code, issues and the regression harness live at
+  <a href="https://github.com/idlebg/idleanvil" target="_blank" rel="noopener" style="color:var(--accent)">github.com/idlebg/idleanvil</a>.</p>
   <div class="banner mt-lg">${ico('alert', 18)}<div>Everything is computed locally in your browser. Verify any transaction independently
   before broadcasting it on mainnet — this tool is a bench, not an authority.</div></div>`;
 
