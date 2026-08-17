@@ -192,3 +192,7 @@ verify.js             regression harness — `node verify.js`
 - Validation reports relay-policy defaults. Individual nodes and miners may differ.
 - Verify anything independently before broadcasting on mainnet. This is a bench, not an
   authority.
+
+## License
+
+[MIT](LICENSE)
