@@ -1,0 +1,1202 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>idleAnvil</title>
+<meta name="description" content="idleAnvil — an offline Bitcoin transaction forge: crafter, PSBT lab, sighash debugger and script laboratory. Constructs and inspects — never signs.">
+<link rel="stylesheet" href="css/idleanvil.css">
+</head>
+<body>
+
+<!-- ======================= icon sprite ======================= -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+<defs>
+  <g id="i-tx"><path d="M3 7h18M3 7l4-4M3 7l4 4M21 17H3m18 0l-4-4m4 4l-4 4"/></g>
+  <g id="i-in"><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 21h16"/></g>
+  <g id="i-out"><path d="M12 21V9m0 0L8 13m4-4l4 4M4 3h16"/></g>
+  <g id="i-code"><path d="M8 6l-5 6 5 6m8-12l5 6-5 6M14 4l-4 16"/></g>
+  <g id="i-key"><circle cx="8" cy="15" r="4"/><path d="M10.8 12.2L20 3m-3 3l2 2m-4 0l2 2"/></g>
+  <g id="i-file"><path d="M14 3H7a2 2 0 00-2 2v14a2 2 0 002 2h10a2 2 0 002-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h4"/></g>
+  <g id="i-check-circle"><circle cx="12" cy="12" r="9"/><path d="M8.5 12.5l2.5 2.5 4.5-5"/></g>
+  <g id="i-search"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></g>
+  <g id="i-shield"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M9 12l2 2 4-4"/></g>
+  <g id="i-terminal"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 9l3 3-3 3m5 1h5"/></g>
+  <g id="i-copy"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a1 1 0 01-1-1V4a1 1 0 011-1h10a1 1 0 011 1v1"/></g>
+  <g id="i-chevron"><path d="M6 9l6 6 6-6"/></g>
+  <g id="i-plus"><path d="M12 5v14M5 12h14"/></g>
+  <g id="i-trash"><path d="M4 7h16M10 11v6m4-6v6M5 7l1 13a2 2 0 002 2h8a2 2 0 002-2l1-13M9 7V4h6v3"/></g>
+  <g id="i-download"><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 19h16"/></g>
+  <g id="i-upload"><path d="M12 21V9m0 0L8 13m4-4l4 4M4 5h16"/></g>
+  <g id="i-refresh"><path d="M20 11a8 8 0 10-2 6m2 2v-5h-5"/></g>
+  <g id="i-sun"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.9 4.9l1.4 1.4m11.4 11.4l1.4 1.4M2 12h2m16 0h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></g>
+  <g id="i-help"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 115 .5c0 1.5-2.5 2-2.5 3.5"/><circle cx="12" cy="17" r=".6" fill="currentColor"/></g>
+  <g id="i-gear"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.6 1.6 0 00.3 1.8l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.6 1.6 0 00-1.8-.3 1.6 1.6 0 00-1 1.5V21a2 2 0 11-4 0v-.1A1.6 1.6 0 008 19.4a1.6 1.6 0 00-1.8.3l-.1.1a2 2 0 11-2.8-2.8l.1-.1a1.6 1.6 0 00.3-1.8 1.6 1.6 0 00-1.5-1H2a2 2 0 110-4h.1A1.6 1.6 0 003.6 8a1.6 1.6 0 00-.3-1.8l-.1-.1a2 2 0 112.8-2.8l.1.1a1.6 1.6 0 001.8.3H8a1.6 1.6 0 001-1.5V2a2 2 0 114 0v.1a1.6 1.6 0 001 1.5 1.6 1.6 0 001.8-.3l.1-.1a2 2 0 112.8 2.8l-.1.1a1.6 1.6 0 00-.3 1.8V8a1.6 1.6 0 001.5 1H22a2 2 0 110 4h-.1a1.6 1.6 0 00-1.5 1z"/></g>
+  <g id="i-alert"><path d="M10.3 3.9L1.8 18a2 2 0 001.7 3h17a2 2 0 001.7-3L14.7 3.9a2 2 0 00-3.4 0z"/><path d="M12 9v4"/><circle cx="12" cy="17" r=".6" fill="currentColor"/></g>
+  <g id="i-info"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4"/><circle cx="12" cy="8.5" r=".6" fill="currentColor"/></g>
+  <g id="i-x"><path d="M18 6L6 18M6 6l12 12"/></g>
+  <g id="i-eye"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></g>
+  <g id="i-lock"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 018 0v3"/></g>
+  <g id="i-wand"><path d="M15 4V2m0 20v-2M4 15H2m20 0h-2M6.3 6.3L4.9 4.9m14.2 1.4l1.4-1.4M3 21L14 10"/><path d="M12.5 7.5l4 4"/></g>
+  <g id="i-globe"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a15 15 0 010 18 15 15 0 010-18z"/></g>
+  <g id="i-layers"><path d="M12 3l9 5-9 5-9-5 9-5z"/><path d="M3 13l9 5 9-5M3 17l9 5 9-5"/></g>
+  <g id="i-arrow-right"><path d="M5 12h14m-6-6l6 6-6 6"/></g>
+  <g id="i-save"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><path d="M17 21v-8H7v8M7 3v5h8"/></g>
+  <g id="i-folder"><path d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></g>
+  <g id="i-hash"><path d="M4 9h16M4 15h16M10 3L8 21m8-18l-2 18"/></g>
+  <g id="i-flask"><path d="M9 3v6.5L4.2 18a2 2 0 001.7 3h12.2a2 2 0 001.7-3L15 9.5V3M8 3h8M7.5 14h9"/></g>
+  <g id="i-wrench"><path d="M14.7 6.3a4 4 0 105.1 5.1l-3-3 1.9-1.9a5.5 5.5 0 00-7.4 7.4L3.5 21a2 2 0 002.8 2.8"/><path d="M14.7 6.3L18.4 2.6"/></g>
+  <g id="i-tree"><path d="M12 3v6m0 0L7 13m5-4l5 4M7 13v3m10-3v3"/><rect x="9" y="3" width="6" height="4" rx="1"/><rect x="4" y="16" width="6" height="5" rx="1"/><rect x="14" y="16" width="6" height="5" rx="1"/></g>
+  <g id="i-swap"><path d="M7 4v14m0 0l-3-3m3 3l3-3M17 20V6m0 0l-3 3m3-3l3 3"/></g>
+  <g id="i-clock"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></g>
+  <g id="i-ruler"><path d="M3 15L15 3l6 6L9 21z"/><path d="M7 11l2 2m2-6l2 2m-8 6l2 2"/></g>
+  <g id="i-plug"><path d="M9 2v6m6-6v6M6 8h12v3a6 6 0 01-6 6 6 6 0 01-6-6zM12 17v5"/></g>
+  <g id="i-broadcast"><circle cx="12" cy="12" r="2.5"/><path d="M7.8 7.8a6 6 0 000 8.4m8.4-8.4a6 6 0 010 8.4M4.9 4.9a10 10 0 000 14.2m14.2-14.2a10 10 0 010 14.2"/></g>
+  <g id="i-coins"><ellipse cx="12" cy="6" rx="8" ry="3"/><path d="M4 6v6c0 1.7 3.6 3 8 3s8-1.3 8-3V6M4 12v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6"/></g>
+  <g id="i-users"><circle cx="9" cy="8" r="3.2"/><path d="M2.5 20a6.5 6.5 0 0113 0"/><path d="M16 5.2a3.2 3.2 0 010 5.6M18 20a6.5 6.5 0 00-3-5.5"/></g>
+  <g id="i-dice"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.2" fill="currentColor"/><circle cx="15.5" cy="15.5" r="1.2" fill="currentColor"/><circle cx="12" cy="12" r="1.2" fill="currentColor"/></g>
+</defs>
+</svg>
+
+<div id="app">
+
+  <!-- ======================= header ======================= -->
+  <header class="topbar">
+    <div class="brand">
+      <div class="logo">₿</div>
+      <div>
+        <h1>idleAnvil</h1>
+        <div class="sub">forge transactions · psbt lab · sighash debugger</div>
+      </div>
+    </div>
+    <span class="pill ok" id="conn-pill" title="This page is not contacting anything and holds no private keys.">OFFLINE · NO KEYS</span>
+
+    <div class="modeswitch" id="modeswitch">
+      <button data-mode="normal" class="on">NORMAL</button>
+      <button data-mode="forensic">FORENSIC</button>
+    </div>
+
+    <div class="spacer"></div>
+
+    <button class="btn" id="btn-new"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#i-plus"/></svg>New</button>
+    <button class="btn" id="btn-open"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#i-folder"/></svg>Open</button>
+    <button class="btn" id="btn-save"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#i-save"/></svg>Save</button>
+
+    <div class="menu-wrap">
+      <button class="btn primary" id="btn-export"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#i-download"/></svg>Export<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><use href="#i-chevron"/></svg></button>
+      <div class="menu" id="export-menu">
+        <div class="label">Unsigned transaction</div>
+        <button data-export="hex-copy">Copy raw hex</button>
+        <button data-export="hex-file">Download .hex</button>
+        <button data-export="txn-file">Download .txn (binary)</button>
+        <div class="sep"></div>
+        <div class="label">PSBT</div>
+        <button data-export="psbt0-b64">Copy PSBT v0 (base64)</button>
+        <button data-export="psbt0-hex">Copy PSBT v0 (hex)</button>
+        <button data-export="psbt0-bin">Download PSBT v0 (.psbt)</button>
+        <button data-export="psbt2-b64">Copy PSBT v2 (base64)</button>
+        <button data-export="psbt2-hex">Copy PSBT v2 (hex)</button>
+        <button data-export="psbt2-bin">Download PSBT v2 (.psbt)</button>
+        <div class="sep"></div>
+        <div class="label">For an external signer</div>
+        <button data-export="signing-json">Download signing package (.json)</button>
+        <button data-export="signing-copy">Copy signing package JSON</button>
+        <div class="sep"></div>
+        <button data-export="project">Download idleAnvil project (.json)</button>
+      </div>
+    </div>
+
+    <button class="iconbtn" id="btn-theme" title="Toggle light / dark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#i-sun"/></svg></button>
+    <button class="iconbtn" id="btn-help" title="About and keyboard shortcuts"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#i-help"/></svg></button>
+  </header>
+
+  <!-- ======================= sidebar ======================= -->
+  <nav class="sidebar" id="sidebar">
+    <div class="navitem active" data-ws="transaction"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><use href="#i-tx"/></svg><span>Transaction</span></div>
+    <div class="navitem" data-ws="inputs"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><use href="#i-in"/></svg><span>Inputs</span><span class="count" id="nav-in-count">1</span></div>
+    <div class="navitem" data-ws="outputs"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><use href="#i-out"/></svg><span>Outputs</span><span class="count" id="nav-out-count">1</span></div>
+    <div class="navitem" data-ws="script"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><use href="#i-code"/></svg><span>Script Lab</span></div>
+    <div class="navitem" data-ws="signing"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><use href="#i-key"/></svg><span>Signing Data</span></div>
+    <div class="navitem" data-ws="psbt"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><use href="#i-file"/></svg><span>PSBT Lab</span></div>
+    <div class="navitem" data-ws="finalize"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><use href="#i-check-circle"/></svg><span>Finalize</span></div>
+    <div class="navitem" data-ws="inspector"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><use href="#i-search"/></svg><span>Inspector</span></div>
+    <div class="navitem" data-ws="validation"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><use href="#i-shield"/></svg><span>Validation</span><span class="count" id="nav-val-count">0</span></div>
+    <div class="navitem" data-ws="rawlab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><use href="#i-flask"/></svg><span>Raw Lab</span></div>
+    <div class="navitem" data-ws="toolkit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><use href="#i-wrench"/></svg><span>Toolkit</span></div>
+    <div class="navitem" data-ws="multisig"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><use href="#i-users"/></svg><span>Multisig</span><span class="count" id="nav-ms-count">0</span></div>
+    <div class="navitem" data-ws="node"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><use href="#i-plug"/></svg><span>Node</span><span class="count" id="nav-node-state">off</span></div>
+
+    <div class="sidefoot">
+      <div class="k">Network</div>
+      <div class="v" id="side-network">MAINNET</div>
+      <div class="net-note"><span class="dot" id="side-dot"></span><span id="side-note">no keys · no rpc</span></div>
+    </div>
+  </nav>
+
+  <!-- ======================= stage ======================= -->
+  <main class="stage" id="stage">
+
+    <!-- ---------------- TRANSACTION ---------------- -->
+    <section class="workspace active" id="ws-transaction">
+      <div class="ribbon" id="net-ribbon"></div>
+
+      <div class="flexrow mb" style="justify-content:space-between">
+        <div class="pipeline" id="pipeline"></div>
+        <span class="hint-text">Click a step to jump to it.</span>
+      </div>
+
+      <div id="tx-tiles" class="mb"></div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <svg class="ph-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#i-tx"/></svg>
+          <h3>Value flow</h3>
+          <div class="tools"><span class="hint-text">bars are relative to the largest amount · click to jump</span></div>
+        </div>
+        <div class="panel-body" id="tx-flow"></div>
+      </div>
+
+      <div class="banner forensic-only" id="forensic-banner">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#i-alert"/></svg>
+        <div><strong>Forensic mode is on.</strong> Fields that wallets normally hide are unlocked. Anything you build here may be
+        non-standard or outright invalid — every such choice is labelled, never blocked. Use regtest or a testnet for experiments.</div>
+      </div>
+
+      <div class="ws-head">
+        <h2>Transaction header</h2>
+        <span class="desc">version · locktime · network · serialization</span>
+      </div>
+
+      <div class="grid c2-1">
+        <div>
+          <div class="panel">
+            <div class="panel-head">
+              <svg class="ph-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#i-globe"/></svg>
+              <h3>Header fields</h3>
+            </div>
+            <div class="panel-body">
+              <div class="row r5">
+                <div class="field">
+                  <label>Network</label>
+                  <select id="f-network">
+                    <option value="mainnet">Mainnet</option>
+                    <option value="testnet3">Testnet3</option>
+                    <option value="testnet4">Testnet4 (BIP94)</option>
+                    <option value="signet">Signet</option>
+                    <option value="regtest">Regtest</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label>TX version</label>
+                  <input type="number" id="f-version" value="2" min="-2147483648" max="2147483647">
+                </div>
+                <div class="field">
+                  <label>nLockTime <span class="hint" id="lt-hex">0x00000000</span></label>
+                  <input type="number" id="f-locktime" value="0" min="0" max="4294967295">
+                </div>
+                <div class="field">
+                  <label>Locktime meaning</label>
+                  <select id="f-locktime-mode">
+                    <option value="disabled">Disabled (0)</option>
+                    <option value="height">Block height</option>
+                    <option value="time">Unix timestamp</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label>Serialization</label>
+                  <select id="f-serialization">
+                    <option value="auto">Automatic</option>
+                    <option value="legacy">Legacy (pre-BIP144)</option>
+                    <option value="segwit">SegWit (BIP144)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="row r3 mt">
+                <div class="field">
+                  <label>PSBT version</label>
+                  <select id="f-psbt-version">
+                    <option value="0">v0 — BIP174</option>
+                    <option value="2">v2 — BIP370</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label>Target fee rate <span class="hint">sat/vB — used by "set fee"</span></label>
+                  <input type="number" id="f-feerate" value="10" min="0" step="0.1">
+                </div>
+                <div class="field">
+                  <label>Locktime date helper</label>
+                  <input type="text" id="f-locktime-desc" class="mono" readonly value="disabled">
+                </div>
+              </div>
+
+              <div class="hint-text mt" id="locktime-note"></div>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-head">
+              <svg class="ph-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#i-alert"/></svg>
+              <h3>Forensic controls</h3>
+              <div class="tools"><button class="btn sm ghost" id="btn-reset-forensic">Reset all</button></div>
+            </div>
+            <div class="panel-body">
+              <p class="hint-text mb">These unlock fields elsewhere in the workbench. Nothing here changes the transaction on its own —
+                it changes what you are allowed to type. Turn on <strong>Forensic mode</strong> in the header to reveal the unlocked fields.</p>
+              <div class="fgrid" id="forensic-controls"></div>
+              <div class="flexrow mt-lg" style="gap:16px">
+                <span class="tag green">VALID — standard</span>
+                <span class="tag amber">NON-STANDARD — consensus-valid, poorly relayed</span>
+                <span class="tag red">INVALID — consensus failure</span>
+                <span class="tag grey">UNKNOWN — not enough information</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <div class="panel">
+            <div class="panel-head">
+              <svg class="ph-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#i-layers"/></svg>
+              <h3>At a glance</h3>
+            </div>
+            <div class="panel-body"><dl class="kv" id="tx-glance"></dl></div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-head">
+              <svg class="ph-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#i-wand"/></svg>
+              <h3>Quick start</h3>
+            </div>
+            <div class="panel-body stack sm">
+              <button class="btn" data-demo="p2wpkh">Load a 1-in / 2-out P2WPKH example</button>
+              <button class="btn" data-demo="opreturn">Load an OP_RETURN data example</button>
+              <button class="btn" data-demo="taproot">Load a Taproot key-path example</button>
+              <button class="btn" data-demo="multisig">Load a 2-of-3 P2WSH multisig example</button>
+              <div class="hint-text">Examples use regtest-style placeholder data. Switch the network freely — addresses re-encode.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ---------------- INPUTS ---------------- -->
+    <section class="workspace" id="ws-inputs">
+      <div class="ws-head">
+        <h2>Inputs</h2>
+        <span class="desc">outpoints and the complete spending metadata each signer needs</span>
+        <div class="tools">
+          <button class="btn sm" id="btn-in-expand">Expand all</button>
+          <button class="btn sm" id="btn-in-collapse">Collapse all</button>
+          <button class="btn sm" id="btn-in-paste">Import from raw tx…</button>
+          <button class="btn primary sm" id="btn-add-input"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><use href="#i-plus"/></svg>Add input</button>
+        </div>
+      </div>
+      <div id="inputs-list"></div>
+    </section>
+
+    <!-- ---------------- OUTPUTS ---------------- -->
+    <section class="workspace" id="ws-outputs">
+      <div class="ws-head">
+        <h2>Outputs</h2>
+        <span class="desc">addresses, script templates, raw scripts and the OP_RETURN builder</span>
+        <div class="tools">
+          <button class="btn sm" id="btn-out-expand">Expand all</button>
+          <button class="btn sm" id="btn-out-collapse">Collapse all</button>
+          <button class="btn sm" id="btn-set-fee">Set fee from rate…</button>
+          <button class="btn primary sm" id="btn-add-output"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><use href="#i-plus"/></svg>Add output</button>
+        </div>
+      </div>
+      <div id="outputs-list"></div>
+    </section>
+
+    <!-- ---------------- SCRIPT LAB ---------------- -->
+    <section class="workspace" id="ws-script">
+      <div class="ws-head">
+        <h2>Script Lab</h2>
+        <span class="desc">build Bitcoin Script from opcodes, ASM or raw bytes — then send it anywhere in the transaction</span>
+      </div>
+      <div class="grid c1-2">
+        <div class="panel">
+          <div class="panel-head">
+            <svg class="ph-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#i-code"/></svg>
+            <h3>Opcode palette</h3>
+          </div>
+          <div class="panel-body">
+            <div class="opcats" id="op-cats"></div>
+            <div class="opgrid" id="op-grid"></div>
+            <div class="subhead mt-lg">Insert data</div>
+            <div class="inline">
+              <div class="field" style="flex:1"><label>Push value</label><input type="text" id="push-value" class="mono" placeholder="hex, 'text' or a number"></div>
+              <button class="btn" id="btn-push-add">Push</button>
+            </div>
+            <div class="hint-text mt">Click any opcode to append it to the canvas. Drag canvas rows to reorder.</div>
+          </div>
+        </div>
+
+        <div>
+          <div class="panel">
+            <div class="panel-head">
+              <svg class="ph-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#i-layers"/></svg>
+              <h3>Script canvas</h3>
+              <div class="tools">
+                <button class="btn sm ghost" id="btn-canvas-clear">Clear</button>
+              </div>
+            </div>
+            <div class="panel-body">
+              <div class="canvas-list" id="script-canvas"></div>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-head"><h3>ASM ↔ HEX</h3></div>
+            <div class="panel-body">
+              <div class="field"><label>ASM</label>
+                <div class="with-copy"><textarea id="script-asm" class="mono" rows="3" placeholder="OP_DUP OP_HASH160 &lt;20-byte hash&gt; OP_EQUALVERIFY OP_CHECKSIG"></textarea><button class="iconbtn" data-copy-el="script-asm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><use href="#i-copy"/></svg></button></div>
+              </div>
+              <div class="field mt"><label>HEX <span class="hint" id="script-size"></span></label>
+                <div class="with-copy"><textarea id="script-hex" class="mono" rows="3" placeholder="76a914…88ac"></textarea><button class="iconbtn" data-copy-el="script-hex"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><use href="#i-copy"/></svg></button></div>
+              </div>
+              <div class="err-text mt" id="script-error"></div>
+              <div class="subhead mt-lg">Rendered</div>
+              <div class="code" id="script-pretty"></div>
+            </div>
+          </div>
+
+          <div class="grid c2">
+            <div class="panel">
+              <div class="panel-head"><h3>Derived</h3></div>
+              <div class="panel-body"><dl class="kv" id="script-derived"></dl></div>
+            </div>
+            <div class="panel">
+              <div class="panel-head"><h3>Send to…</h3></div>
+              <div class="panel-body stack sm">
+                <div class="field"><label>Target input / output index</label><input type="number" id="script-target-idx" value="0" min="0"></div>
+                <button class="btn" data-send="out-raw">Output → raw scriptPubKey</button>
+                <button class="btn" data-send="in-redeem">Input → redeemScript</button>
+                <button class="btn" data-send="in-witness">Input → witnessScript</button>
+                <button class="btn" data-send="in-leaf">Input → taproot leaf script</button>
+                <button class="btn" data-send="in-scriptsig">Input → scriptSig (forensic)</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ---------------- SIGNING ---------------- -->
+    <section class="workspace" id="ws-signing">
+      <div class="ws-head">
+        <h2>Signing Data</h2>
+        <span class="desc">everything an external signer needs — and nothing that could sign here</span>
+        <div class="tools">
+          <div class="field" style="min-width:190px"><select id="signing-input-sel"></select></div>
+          <button class="btn sm" id="btn-copy-signing-json">Copy signing JSON</button>
+          <button class="btn primary sm" id="btn-export-signing">Export package</button>
+        </div>
+      </div>
+      <div class="banner blue">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#i-lock"/></svg>
+        <div>This page has no signing code and no private-key field, by design. Take <strong>z</strong> (or the PSBT) to Bitcoin Core,
+          a hardware signer or your own library, then bring the signature back through <strong>Finalize</strong>.</div>
+      </div>
+      <div id="signing-body"></div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <svg class="ph-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#i-terminal"/></svg>
+          <h3>Signer code — ready to run</h3>
+          <div class="tools">
+            <button class="btn sm" id="btn-code-copy">Copy</button>
+            <button class="btn sm" id="btn-code-save">Download</button>
+          </div>
+        </div>
+        <div class="panel-body">
+          <p class="hint-text mb">Generated against the digests above. Fill in your own key, run it outside the browser,
+            and paste the JSON it prints into <strong>Finalize → Signing JSON</strong>.</p>
+          <div class="codewrap">
+            <div class="codetabs" id="code-tabs"></div>
+            <div class="codebody" id="code-body"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ---------------- PSBT ---------------- -->
+    <section class="workspace" id="ws-psbt">
+      <div class="ws-head">
+        <h2>PSBT Lab</h2>
+        <span class="desc">create, decode, compare and export BIP174 / BIP370 partially signed transactions</span>
+        <div class="tools">
+          <div class="seg" id="psbt-ver-seg">
+            <button data-v="0" class="on">v0 · BIP174</button>
+            <button data-v="2">v2 · BIP370</button>
+          </div>
+          <button class="btn sm" id="btn-psbt-refresh"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><use href="#i-refresh"/></svg>Rebuild</button>
+        </div>
+      </div>
+      <div class="grid c2">
+        <div>
+          <div class="panel">
+            <div class="panel-head"><h3>Generated PSBT</h3>
+              <div class="tools">
+                <button class="btn sm" data-copy-el="psbt-b64">Copy base64</button>
+                <button class="btn sm" data-copy-el="psbt-hex">Copy hex</button>
+                <button class="btn sm" id="btn-psbt-download">.psbt</button>
+              </div>
+            </div>
+            <div class="panel-body">
+              <div class="field"><label>Base64 <span class="hint" id="psbt-size"></span></label>
+                <div class="with-copy"><textarea id="psbt-b64" class="mono" rows="6" readonly></textarea><button class="iconbtn" data-copy-el="psbt-b64"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><use href="#i-copy"/></svg></button></div>
+              </div>
+              <div class="field mt"><label>Hex</label>
+                <div class="with-copy"><textarea id="psbt-hex" class="mono" rows="4" readonly></textarea><button class="iconbtn" data-copy-el="psbt-hex"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><use href="#i-copy"/></svg></button></div>
+              </div>
+              <div class="err-text mt" id="psbt-error"></div>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-head"><h3>Bitcoin Core helper commands</h3></div>
+            <div class="panel-body">
+              <p class="hint-text mb">Copy-paste into <code>bitcoin-cli</code>. The workbench deliberately holds no RPC credentials and makes no network calls.</p>
+              <div id="core-cmds"></div>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <div class="panel">
+            <div class="panel-head"><h3>Decode / import</h3>
+              <div class="tools"><button class="btn sm" id="btn-psbt-parse">Decode</button><button class="btn primary sm" id="btn-psbt-load">Load into workbench</button></div>
+            </div>
+            <div class="panel-body">
+              <div class="drop" id="psbt-drop">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><use href="#i-upload"/></svg>
+                Drop a .psbt file here, or click to choose
+              </div>
+              <div class="field mt"><label>…or paste base64 / hex</label>
+                <textarea id="psbt-in" class="mono" rows="5" placeholder="cHNidP8B…"></textarea>
+              </div>
+            </div>
+          </div>
+          <div class="panel">
+            <div class="panel-head"><h3>Decoded structure</h3></div>
+            <div class="panel-body tight"><div id="psbt-decoded"><div class="empty-note">Nothing decoded yet.</div></div></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ---------------- FINALIZE ---------------- -->
+    <section class="workspace" id="ws-finalize">
+      <div class="ws-head">
+        <h2>Finalize</h2>
+        <span class="desc">bring signatures back in, assemble scriptSig / witness, produce the broadcastable transaction</span>
+        <div class="tools">
+          <button class="btn sm" id="btn-finalize-run">Assemble unlocking data</button>
+          <button class="btn primary sm" id="btn-final-copy">Copy final hex</button>
+        </div>
+      </div>
+
+      <div class="grid c2">
+        <div class="panel">
+          <div class="panel-head"><h3>Import signed result</h3></div>
+          <div class="panel-body">
+            <div class="seg full mb" id="import-tabs">
+              <button data-t="psbt" class="on">Signed PSBT</button>
+              <button data-t="der">DER signature</button>
+              <button data-t="schnorr">Schnorr</button>
+              <button data-t="rs">r / s</button>
+              <button data-t="json">Signing JSON</button>
+              <button data-t="raw">Final raw TX</button>
+            </div>
+            <div id="import-panes"></div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head"><h3>Signature status per input</h3></div>
+          <div class="panel-body tight"><div id="finalize-status"></div></div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head"><h3>Final transaction</h3>
+          <div class="tools"><button class="btn sm" id="btn-final-download">Download .hex</button></div>
+        </div>
+        <div class="panel-body">
+          <div class="grid c2-1">
+            <div class="field">
+              <label>Raw hex</label>
+              <div class="with-copy"><textarea id="final-hex" class="mono" rows="7" readonly></textarea><button class="iconbtn" data-copy-el="final-hex"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><use href="#i-copy"/></svg></button></div>
+            </div>
+            <dl class="kv" id="final-stats"></dl>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ---------------- INSPECTOR ---------------- -->
+    <section class="workspace" id="ws-inspector">
+      <div class="ws-head">
+        <h2>Inspector</h2>
+        <span class="desc">byte-by-byte decoding — hover any byte to see which field it belongs to</span>
+        <div class="tools">
+          <div class="seg" id="inspect-src">
+            <button data-s="current" class="on">Current transaction</button>
+            <button data-s="paste">Pasted hex</button>
+          </div>
+          <button class="btn sm" id="btn-inspect-run">Decode</button>
+        </div>
+      </div>
+
+      <div class="field mb hidden" id="inspect-paste-wrap">
+        <label>Raw transaction hex</label>
+        <textarea id="inspect-hex" class="mono" rows="4" placeholder="0200000001…"></textarea>
+        <div class="flexrow mt"><button class="btn sm" id="btn-inspect-load">Load into workbench</button></div>
+      </div>
+
+      <div class="grid c2-1">
+        <div class="panel">
+          <div class="panel-head"><h3>Byte-level view</h3>
+            <div class="tools"><span class="hint-text" id="inspect-size"></span></div>
+          </div>
+          <div class="panel-body">
+            <div class="hexview" id="hexview"><div class="empty-note">Press Decode.</div></div>
+            <div class="legend" id="hex-legend"></div>
+          </div>
+        </div>
+        <div>
+          <div class="panel">
+            <div class="panel-head"><h3>Field detail</h3></div>
+            <div class="panel-body"><div class="byteinfo" id="byteinfo">Hover a byte.</div></div>
+          </div>
+          <div class="panel">
+            <div class="panel-head"><h3>Decoded</h3></div>
+            <div class="panel-body"><dl class="kv" id="inspect-summary"></dl></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head"><h3>Structure</h3></div>
+        <div class="panel-body tight"><div class="tbl-wrap"><table class="data" id="inspect-table"></table></div></div>
+      </div>
+    </section>
+
+    <!-- ---------------- VALIDATION ---------------- -->
+    <section class="workspace" id="ws-validation">
+      <div class="ws-head">
+        <h2>Validation</h2>
+        <span class="desc">structural, consensus and relay-policy findings — reported, never enforced</span>
+        <div class="tools" id="val-chips"></div>
+      </div>
+      <div class="panel"><div class="panel-body tight"><div id="validation-list"></div></div></div>
+
+      <div class="panel">
+        <div class="panel-head"><h3>Sighash commitment matrix</h3>
+          <div class="tools">
+            <div class="field" style="min-width:200px"><select id="matrix-input"></select></div>
+          </div>
+        </div>
+        <div class="panel-body"><div id="sighash-matrix"></div></div>
+      </div>
+    </section>
+
+    <!-- ---------------- RAW LAB ---------------- -->
+    <section class="workspace" id="ws-rawlab">
+      <div class="ws-head">
+        <h2>Raw Lab</h2>
+        <span class="desc">the unrestricted bench: hashes, encodings, signature surgery, address conversion</span>
+      </div>
+      <div class="grid c2">
+        <div class="panel">
+          <div class="panel-head"><svg class="ph-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><use href="#i-hash"/></svg><h3>Hash calculator</h3></div>
+          <div class="panel-body">
+            <div class="row r2">
+              <div class="field"><label>Input encoding</label>
+                <select id="hash-enc"><option value="hex">Hex bytes</option><option value="utf8">UTF-8 text</option><option value="ascii">ASCII / latin-1</option><option value="base64">Base64</option></select>
+              </div>
+              <div class="field"><label>Tag <span class="hint">BIP340 tagged hash</span></label><input type="text" id="hash-tag" class="mono" placeholder="TapLeaf, TapTweak, TapSighash…"></div>
+            </div>
+            <div class="field mt"><label>Data</label><textarea id="hash-in" class="mono" rows="3"></textarea></div>
+            <dl class="kv mt" id="hash-out"></dl>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head"><svg class="ph-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><use href="#i-key"/></svg><h3>Signature surgery</h3></div>
+          <div class="panel-body">
+            <div class="field"><label>DER signature (with or without the sighash byte)</label><textarea id="der-in" class="mono" rows="2" placeholder="3044…01"></textarea></div>
+            <dl class="kv mt" id="der-out"></dl>
+            <div class="subhead mt-lg">Build DER from r and s</div>
+            <div class="row r3">
+              <div class="field"><label>r</label><input type="text" id="rs-r" class="mono" placeholder="32-byte hex"></div>
+              <div class="field"><label>s</label><input type="text" id="rs-s" class="mono" placeholder="32-byte hex"></div>
+              <div class="field"><label>Sighash byte</label><input type="text" id="rs-sh" class="mono" value="01"></div>
+            </div>
+            <div class="flexrow mt"><button class="btn sm" id="btn-rs-build">Encode DER</button><button class="btn sm" id="btn-rs-low">Force low-S</button></div>
+            <div class="field mt"><label>Result</label><div class="with-copy"><input type="text" id="rs-out" class="mono" readonly><button class="iconbtn" data-copy-el="rs-out"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><use href="#i-copy"/></svg></button></div></div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head"><svg class="ph-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><use href="#i-globe"/></svg><h3>Address ↔ script</h3></div>
+          <div class="panel-body">
+            <div class="field"><label>Address</label><input type="text" id="addr-in" class="mono" placeholder="bc1q… / 1… / 3… / bcrt1p…"></div>
+            <div class="flexrow mt"><button class="btn sm" id="btn-addr-decode">Decode address</button><button class="btn sm" id="btn-script-to-addr">Script → address</button></div>
+            <div class="field mt"><label>scriptPubKey hex</label><input type="text" id="addr-script" class="mono"></div>
+            <dl class="kv mt" id="addr-out"></dl>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head"><svg class="ph-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><use href="#i-terminal"/></svg><h3>Byte utilities</h3></div>
+          <div class="panel-body">
+            <div class="field"><label>Value</label><input type="text" id="util-in" class="mono" placeholder="hex bytes or a decimal number"></div>
+            <div class="flexrow mt">
+              <button class="btn sm" data-util="reverse">Reverse endianness</button>
+              <button class="btn sm" data-util="varint">Encode as varint</button>
+              <button class="btn sm" data-util="scriptnum">Encode as CScriptNum</button>
+              <button class="btn sm" data-util="u32">Encode as u32 LE</button>
+              <button class="btn sm" data-util="u64">Encode as u64 LE</button>
+              <button class="btn sm" data-util="b64">Hex → base64</button>
+              <button class="btn sm" data-util="unb64">Base64 → hex</button>
+              <button class="btn sm" data-util="text">Hex → text</button>
+              <button class="btn sm" data-util="push">Wrap as a push</button>
+            </div>
+            <div class="field mt"><label>Result</label><div class="with-copy"><textarea id="util-out" class="mono" rows="3" readonly></textarea><button class="iconbtn" data-copy-el="util-out"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><use href="#i-copy"/></svg></button></div></div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head"><svg class="ph-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><use href="#i-flask"/></svg><h3>Taproot bench</h3></div>
+          <div class="panel-body">
+            <div class="row r2">
+              <div class="field"><label>Internal key (x-only, 32 bytes)</label><input type="text" id="tr-internal" class="mono"></div>
+              <div class="field"><label>Merkle root (optional)</label><input type="text" id="tr-merkle" class="mono"></div>
+            </div>
+            <div class="row r2 mt">
+              <div class="field"><label>Leaf script (hex)</label><input type="text" id="tr-leaf" class="mono"></div>
+              <div class="field"><label>Leaf version</label><input type="text" id="tr-leafver" class="mono" value="c0"></div>
+            </div>
+            <div class="flexrow mt"><button class="btn sm" id="btn-tr-compute">Compute</button></div>
+            <dl class="kv mt" id="tr-out"></dl>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head"><svg class="ph-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><use href="#i-shield"/></svg><h3>Verify a signature</h3></div>
+          <div class="panel-body">
+            <div class="row r2">
+              <div class="field"><label>Public key (33 / 65 / 32 bytes)</label><input type="text" id="ver-pk" class="mono"></div>
+              <div class="field"><label>Algorithm</label><select id="ver-algo"><option value="ecdsa">ECDSA (DER)</option><option value="schnorr">Schnorr (BIP340, 64 bytes)</option></select></div>
+            </div>
+            <div class="field mt"><label>Message digest z (32 bytes)</label><input type="text" id="ver-z" class="mono"></div>
+            <div class="field mt"><label>Signature</label><textarea id="ver-sig" class="mono" rows="2"></textarea></div>
+            <div class="flexrow mt"><button class="btn sm" id="btn-verify">Verify</button><button class="btn sm" id="btn-verify-fill">Fill z from selected input</button></div>
+            <div class="mt" id="ver-out"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ---------------- TOOLKIT ---------------- -->
+    <section class="workspace" id="ws-toolkit">
+      <div class="ws-head">
+        <h2>Toolkit</h2>
+        <span class="desc">the supporting tools you reach for while building — descriptors, keys, trees, conversions, estimates</span>
+      </div>
+
+      <div class="toolgrid">
+
+        <!-- output descriptors -->
+        <div class="panel">
+          <div class="panel-head"><svg class="ph-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><use href="#i-file"/></svg><h3>Output descriptors (BIP380)</h3></div>
+          <div class="panel-body">
+            <div class="field"><label>Start from a pattern</label><select id="desc-tpl"></select></div>
+            <div class="field mt"><label>Descriptor <span class="hint">the checksum after # is computed for you</span></label>
+              <textarea id="desc-in" class="mono" rows="3" placeholder="wpkh([d34db33f/84h/0h/0h]xpub…/0/*)"></textarea></div>
+            <div class="flexrow mt">
+              <button class="btn sm" id="btn-desc-check">Add / verify checksum</button>
+              <button class="btn sm" id="btn-desc-from-tx">Derive from this transaction</button>
+            </div>
+            <div class="mt" id="desc-out"></div>
+          </div>
+        </div>
+
+        <!-- extended keys -->
+        <div class="panel">
+          <div class="panel-head"><svg class="ph-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><use href="#i-key"/></svg><h3>Extended key decoder (BIP32)</h3></div>
+          <div class="panel-body">
+            <div class="field"><label>xpub / ypub / zpub / tpub / vpub …</label>
+              <textarea id="xkey-in" class="mono" rows="2" placeholder="xpub6C…"></textarea></div>
+            <div class="flexrow mt"><button class="btn sm" id="btn-xkey">Decode</button>
+              <span class="hint-text">Private keys are recognised but never displayed.</span></div>
+            <dl class="kv mt" id="xkey-out"></dl>
+          </div>
+        </div>
+
+        <!-- taproot tree -->
+        <div class="panel" style="grid-column:1/-1">
+          <div class="panel-head"><svg class="ph-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><use href="#i-tree"/></svg><h3>Taproot script tree builder</h3>
+            <div class="tools"><button class="btn sm" id="btn-leaf-add">+ Leaf</button><button class="btn sm" id="btn-tree-build">Build tree</button></div>
+          </div>
+          <div class="panel-body">
+            <div class="row r2">
+              <div class="field"><label>Internal key <span class="hint">32-byte x-only</span></label>
+                <input type="text" id="tree-internal" class="mono" placeholder="…"></div>
+              <div class="field"><label>&nbsp;</label>
+                <div class="flexrow"><button class="btn sm" id="btn-tree-nums">Use the NUMS point (no key path)</button>
+                  <button class="btn sm" id="btn-tree-apply">Apply to an input…</button></div></div>
+            </div>
+            <div class="subhead mt-lg">Leaves <span class="hint-text" style="text-transform:none;letter-spacing:0">script hex or ASM · leaf version defaults to 0xc0</span></div>
+            <div id="leaf-list"></div>
+            <div class="grid c2 mt-lg">
+              <div><div class="subhead">Tree layout</div><div class="treeview" id="tree-layout">—</div></div>
+              <div><div class="subhead">Result</div><dl class="kv" id="tree-out"></dl></div>
+            </div>
+            <div id="tree-leaves" class="mt"></div>
+          </div>
+        </div>
+
+        <!-- unit + base conversion -->
+        <div class="panel">
+          <div class="panel-head"><svg class="ph-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><use href="#i-swap"/></svg><h3>Units &amp; number bases</h3></div>
+          <div class="panel-body">
+            <div class="row r2">
+              <div class="field"><label>Amount</label><input type="text" id="unit-in" class="mono" value="100000"></div>
+              <div class="field"><label>Interpret as</label><select id="unit-from"></select></div>
+            </div>
+            <div class="pairs mt" id="unit-out"></div>
+            <div class="subhead mt-lg">Number base conversion</div>
+            <div class="field"><label>Value <span class="hint">decimal, 0x hex, 0b binary, or bare hex</span></label>
+              <input type="text" id="base-in" class="mono" placeholder="0xdeadbeef"></div>
+            <dl class="kv mt" id="base-out"></dl>
+          </div>
+        </div>
+
+        <!-- locktime / sequence -->
+        <div class="panel">
+          <div class="panel-head"><svg class="ph-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><use href="#i-clock"/></svg><h3>Locktime &amp; sequence lab</h3></div>
+          <div class="panel-body">
+            <div class="row r2">
+              <div class="field"><label>nLockTime value</label><input type="text" id="lt-in" class="mono" value="0"></div>
+              <div class="field"><label>Current block height <span class="hint">for the ETA</span></label><input type="text" id="lt-height" class="mono" placeholder="e.g. 880000"></div>
+            </div>
+            <div class="field mt"><label>…or pick a date</label><input type="text" id="lt-date" class="mono" placeholder="2026-12-25T00:00:00Z"></div>
+            <div class="flexrow mt"><button class="btn sm" id="btn-lt-date">Date → locktime</button>
+              <button class="btn sm" id="btn-lt-apply">Apply to the transaction</button></div>
+            <dl class="kv mt" id="lt-out"></dl>
+
+            <div class="subhead mt-lg">nSequence — relative timelocks (BIP68)</div>
+            <div class="row r3">
+              <div class="field"><label>Encode as</label><select id="seq-type"><option value="blocks">Blocks</option><option value="time">Time (512 s units)</option><option value="disabled">Disabled / final</option></select></div>
+              <div class="field"><label>Value</label><input type="text" id="seq-val" class="mono" value="144"></div>
+              <div class="field"><label>Decode a raw value</label><input type="text" id="seq-raw" class="mono" placeholder="fffffffd"></div>
+            </div>
+            <dl class="kv mt" id="seq-out"></dl>
+          </div>
+        </div>
+
+        <!-- size / fee estimator -->
+        <div class="panel">
+          <div class="panel-head"><svg class="ph-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><use href="#i-ruler"/></svg><h3>Size &amp; fee estimator</h3></div>
+          <div class="panel-body">
+            <div class="subhead">Inputs</div><div id="est-inputs"></div>
+            <div class="subhead mt">Outputs</div><div id="est-outputs"></div>
+            <div class="field mt"><label>Fee rate (sat/vB)</label><input type="text" id="est-rate" class="mono" value="10"></div>
+            <div class="tiles mt" id="est-out"></div>
+          </div>
+        </div>
+
+        <!-- pubkey toolkit -->
+        <div class="panel">
+          <div class="panel-head"><svg class="ph-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><use href="#i-key"/></svg><h3>Public key toolkit</h3></div>
+          <div class="panel-body">
+            <div class="field"><label>Public key <span class="hint">33 / 65 / 32 bytes</span></label>
+              <input type="text" id="pk-in" class="mono" placeholder="02…"></div>
+            <div class="flexrow mt"><button class="btn sm" id="btn-pk">Analyse</button>
+              <button class="btn sm" id="btn-pk-scripts">Every script for this key</button></div>
+            <dl class="kv mt" id="pk-out"></dl>
+            <div class="mt" id="pk-scripts"></div>
+          </div>
+        </div>
+
+        <!-- merkle -->
+        <div class="panel">
+          <div class="panel-head"><svg class="ph-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><use href="#i-hash"/></svg><h3>Merkle root calculator</h3></div>
+          <div class="panel-body">
+            <div class="field"><label>TXIDs, one per line <span class="hint">display order, as you would read them in an explorer</span></label>
+              <textarea id="mk-in" class="mono" rows="5"></textarea></div>
+            <div class="flexrow mt"><button class="btn sm" id="btn-merkle">Compute</button></div>
+            <dl class="kv mt" id="mk-out"></dl>
+          </div>
+        </div>
+
+        <!-- script analyser -->
+        <div class="panel">
+          <div class="panel-head"><svg class="ph-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><use href="#i-shield"/></svg><h3>Script analyser</h3></div>
+          <div class="panel-body">
+            <div class="field"><label>Script hex</label><textarea id="an-in" class="mono" rows="3"></textarea></div>
+            <div class="flexrow mt"><button class="btn sm" id="btn-analyse">Analyse</button>
+              <button class="btn sm" id="btn-analyse-lab">Take from Script Lab</button></div>
+            <div class="mt" id="an-asm"></div>
+            <dl class="kv mt" id="an-out"></dl>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ---------------- MULTISIG ---------------- -->
+    <section class="workspace" id="ws-multisig">
+      <div class="ws-head">
+        <h2>Multisig crafter</h2>
+        <span class="desc">m-of-n from public keys — every variant computed live as you type</span>
+        <div class="tools">
+          <button class="btn sm" id="btn-ms-example">Load example keys</button>
+          <button class="btn sm" id="btn-ms-clear">Clear</button>
+          <button class="btn primary sm" id="btn-ms-addkey">+ Key</button>
+        </div>
+      </div>
+
+      <div class="ribbon test" id="ms-ribbon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#i-lock"/></svg>
+        <span class="body"><strong>Public keys only.</strong> This builds the receiving side of a multisig wallet — the addresses and
+          scripts. It never asks for, derives or stores a private key, so it cannot spend anything it creates.</span>
+      </div>
+
+      <div class="grid c2-1">
+        <div>
+          <!-- headline address -->
+          <div class="panel">
+            <div class="panel-head">
+              <svg class="ph-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#i-globe"/></svg>
+              <h3>Address</h3>
+              <div class="tools">
+                <div class="seg" id="ms-primary">
+                  <button data-v="p2wsh" class="on">P2WSH</button>
+                  <button data-v="p2sh-p2wsh">P2SH-P2WSH</button>
+                  <button data-v="p2sh">P2SH</button>
+                  <button data-v="p2tr">P2TR</button>
+                </div>
+                <button class="btn sm" id="btn-ms-copyaddr">Copy</button>
+              </div>
+            </div>
+            <div class="panel-body">
+              <div class="addrbig none" id="ms-address">add a public key to begin</div>
+              <div class="avalanche" id="ms-avalanche"></div>
+              <div class="flexrow mt">
+                <button class="btn sm" id="btn-ms-flip" title="Change one hex digit in a random key and watch the whole address change">
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><use href="#i-dice"/></svg>
+                  Flip one digit</button>
+                <button class="btn sm" id="btn-ms-undo" disabled>Undo that</button>
+                <span class="hint-text">Every character of the address depends on every bit of every key.</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- key table -->
+          <div class="panel">
+            <div class="panel-head">
+              <svg class="ph-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#i-users"/></svg>
+              <h3>Cosigner public keys</h3>
+              <div class="tools">
+                <span class="hint-text">tick to include · drag order via the arrows</span>
+                <button class="btn sm" id="btn-ms-paste">Paste many…</button>
+              </div>
+            </div>
+            <div class="panel-body">
+              <div class="keyrow" style="color:var(--faint);font-size:9.5px;letter-spacing:.7px;text-transform:uppercase">
+                <span>#</span><span></span><span>Public key (33 / 65 / 32 bytes hex)</span>
+                <span style="text-align:center">Status</span><span style="text-align:center">Form</span>
+                <span></span><span></span><span></span>
+              </div>
+              <div id="ms-keys"></div>
+              <div id="ms-keynotes" class="mt"></div>
+            </div>
+          </div>
+
+          <!-- variants -->
+          <div class="panel">
+            <div class="panel-head"><h3>Every variant of this key set</h3>
+              <div class="tools"><span class="hint-text">click a card to make it the headline address</span></div>
+            </div>
+            <div class="panel-body">
+              <div class="msgrid" id="ms-variants"></div>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <!-- policy -->
+          <div class="panel">
+            <div class="panel-head"><h3>Policy</h3></div>
+            <div class="panel-body">
+              <div class="mofn">
+                <div class="big"><span id="ms-m">2</span><span class="of">of</span><span id="ms-n">3</span></div>
+                <input type="range" id="ms-mslider" min="1" max="3" value="2">
+              </div>
+              <div class="hint-text mt" id="ms-policy-note"></div>
+
+              <div class="field mt-lg">
+                <label>Key order</label>
+                <div class="seg full" id="ms-sort">
+                  <button data-v="entered" class="on">As entered</button>
+                  <button data-v="bip67">BIP67 sorted</button>
+                </div>
+                <div class="hint-text mt" id="ms-sort-note"></div>
+              </div>
+
+              <details class="disclosure">
+                <summary>Taproot options</summary>
+                <div class="dbody">
+                  <div class="field">
+                    <label>Internal key <span class="hint">x-only</span></label>
+                    <input type="text" id="ms-internal" class="mono">
+                  </div>
+                  <div class="flexrow mt">
+                    <button class="btn sm" id="btn-ms-nums">Use the NUMS point</button>
+                    <span class="hint-text">NUMS removes the key path, so only the m-of-n script can spend.</span>
+                  </div>
+                </div>
+              </details>
+            </div>
+          </div>
+
+          <!-- warnings -->
+          <div class="panel">
+            <div class="panel-head"><h3>Checks</h3></div>
+            <div class="panel-body tight"><div id="ms-checks"></div></div>
+          </div>
+
+          <!-- history -->
+          <div class="panel">
+            <div class="panel-head"><h3>What changed</h3>
+              <div class="tools"><button class="btn sm ghost" id="btn-ms-clearhist">Clear</button></div>
+            </div>
+            <div class="panel-body tight"><div id="ms-history"><div class="empty-note">Edit something to start the trail.</div></div></div>
+          </div>
+
+          <!-- output -->
+          <div class="panel">
+            <div class="panel-head"><h3>Use it</h3></div>
+            <div class="panel-body stack sm">
+              <div class="field"><label>Descriptor</label>
+                <div class="with-copy"><textarea id="ms-descriptor" class="mono" rows="3" readonly></textarea>
+                  <button class="iconbtn" data-copy-el="ms-descriptor"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><use href="#i-copy"/></svg></button></div>
+              </div>
+              <div class="field"><label>Target index</label><input type="number" id="ms-target" value="0" min="0"></div>
+              <button class="btn" data-act="ms-to-output">Send to an output</button>
+              <button class="btn" data-act="ms-to-input">Set up an input to spend it</button>
+              <button class="btn" data-act="ms-to-lab">Open the script in Script Lab</button>
+              <button class="btn" data-act="ms-check-node" id="btn-ms-node">Check this address on the node</button>
+              <button class="btn" data-act="ms-export">Download wallet JSON</button>
+              <div id="ms-nodeout"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ---------------- NODE ---------------- -->
+    <section class="workspace" id="ws-node">
+      <div class="ws-head">
+        <h2>Node</h2>
+        <span class="desc">optional live chain data over an Electrum WebSocket — off unless you connect it</span>
+        <div class="tools">
+          <span id="node-pill" class="pill">DISCONNECTED</span>
+          <button class="btn sm" id="btn-node-disconnect" disabled>Disconnect</button>
+          <button class="btn primary sm" id="btn-node-connect">Connect</button>
+        </div>
+      </div>
+
+      <div class="ribbon blue" id="node-ribbon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#i-info"/></svg>
+        <span class="body">The workbench is fully usable offline. Connecting only adds chain lookups — fee estimates, UTXOs,
+          previous transactions — and an explicitly confirmed broadcast. <strong>Private keys are never involved:
+          there are none in this page to send.</strong></span>
+      </div>
+
+      <div class="grid c2-1">
+        <div>
+          <div class="panel">
+            <div class="panel-head">
+              <svg class="ph-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#i-plug"/></svg>
+              <h3>Connection</h3>
+              <div class="tools"><button class="btn sm ghost" id="btn-node-reset">Reset to defaults</button></div>
+            </div>
+            <div class="panel-body">
+              <p class="hint-text mb">One endpoint per chain, so switching networks switches servers. These are stored locally
+                and never sent anywhere.</p>
+              <p class="hint-text mb">The port must be a <strong>WebSocket</strong> listener. A browser cannot open a plain TCP or
+                SSL Electrum port, so Fulcrum's <span class="mono">tcp&nbsp;=</span> (usually 50001) and
+                <span class="mono">ssl&nbsp;=</span> ports will not work here — you need
+                <span class="mono">ws&nbsp;=&nbsp;&lt;port&gt;</span> (or <span class="mono">wss&nbsp;=</span>) in
+                <span class="mono">fulcrum.conf</span>. One instance serves one chain; the genesis hash is checked on connect
+                and a mismatch is reported rather than silently used.</p>
+              <div id="node-endpoints"></div>
+              <label class="check mt"><input type="checkbox" id="node-autoconnect"> Reconnect automatically when this page opens</label>
+              <div class="mt" id="node-status"></div>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-head">
+              <svg class="ph-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#i-coins"/></svg>
+              <h3>UTXO lookup</h3>
+              <div class="tools"><button class="btn sm" id="btn-utxo-scan" disabled>Scan</button></div>
+            </div>
+            <div class="panel-body">
+              <div class="field">
+                <label>Address or scriptPubKey hex</label>
+                <input type="text" id="utxo-query" class="mono" placeholder="tb1q… or 0014…">
+              </div>
+              <div class="mt" id="utxo-summary"></div>
+              <div class="mt" id="utxo-list"></div>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-head">
+              <svg class="ph-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#i-search"/></svg>
+              <h3>Fetch a transaction</h3>
+              <div class="tools"><button class="btn sm" id="btn-txfetch" disabled>Fetch</button></div>
+            </div>
+            <div class="panel-body">
+              <div class="row r3">
+                <div class="field" style="grid-column:span 2"><label>TXID</label>
+                  <input type="text" id="txfetch-id" class="mono" placeholder="64 hex characters"></div>
+                <div class="field"><label>Output index</label><input type="number" id="txfetch-vout" value="0" min="0"></div>
+              </div>
+              <div class="flexrow mt">
+                <button class="btn sm" id="btn-txfetch-input" disabled>Add that output as an input</button>
+                <button class="btn sm" id="btn-txfetch-inspect" disabled>Open in Inspector</button>
+              </div>
+              <div class="mt" id="txfetch-out"></div>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-head">
+              <svg class="ph-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#i-broadcast"/></svg>
+              <h3>Broadcast</h3>
+            </div>
+            <div class="panel-body">
+              <div class="banner red mb">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#i-alert"/></svg>
+                <div>Publishing is irreversible. The transaction is shown in full and confirmed before anything is sent.</div>
+              </div>
+              <div class="field">
+                <label>Final transaction hex <span class="hint">taken from Finalize; edit if you want to send something else</span></label>
+                <textarea id="bc-hex" class="mono" rows="4"></textarea>
+              </div>
+              <div class="flexrow mt">
+                <button class="btn sm" id="btn-bc-load">Load from Finalize</button>
+                <button class="btn sm" id="btn-bc-check" disabled>Dry run — decode and check</button>
+                <button class="btn danger" id="btn-bc-send" disabled>Broadcast…</button>
+              </div>
+              <div class="mt" id="bc-out"></div>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <div class="panel">
+            <div class="panel-head"><h3>Chain</h3>
+              <div class="tools"><button class="iconbtn" id="btn-node-refresh" title="Refresh">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><use href="#i-refresh"/></svg></button></div>
+            </div>
+            <div class="panel-body"><dl class="kv" id="node-chain"><dt class="mutedc">—</dt><dd>not connected</dd></dl></div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-head"><h3>Fee estimates</h3>
+              <div class="tools"><button class="btn sm" id="btn-fee-refresh" disabled>Refresh</button></div>
+            </div>
+            <div class="panel-body tight"><div id="fee-table"><div class="empty-note">Connect to load fee estimates.</div></div></div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-head"><h3>Server banner</h3></div>
+            <div class="panel-body"><div class="code" id="node-banner">—</div></div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-head"><h3>Traffic log</h3>
+              <div class="tools"><button class="btn sm ghost" id="btn-node-clearlog">Clear</button></div>
+            </div>
+            <div class="panel-body tight"><div class="code tall" id="node-log" style="border:0;border-radius:0">nothing yet</div></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ======================= dock ======================= -->
+  <footer class="dock">
+    <div class="dock-bar" id="dock-bar">
+      <div class="stat"><span class="k">Size</span><span class="v" id="d-size">—</span></div>
+      <div class="stat"><span class="k">vSize</span><span class="v" id="d-vsize">—</span></div>
+      <div class="stat"><span class="k">Weight</span><span class="v" id="d-weight">—</span></div>
+      <div class="stat"><span class="k">In</span><span class="v" id="d-nin">0</span></div>
+      <div class="stat"><span class="k">Out</span><span class="v" id="d-nout">0</span></div>
+      <div class="stat"><span class="k">Input total</span><span class="v" id="d-intotal">—</span></div>
+      <div class="stat"><span class="k">Output total</span><span class="v" id="d-outtotal">—</span></div>
+      <div class="stat"><span class="k">Fee</span><span class="v accent" id="d-fee">—</span></div>
+      <div class="stat"><span class="k">Rate</span><span class="v accent" id="d-rate">—</span></div>
+      <div class="stat"><span class="k">Status</span><span class="v" id="d-status">—</span></div>
+      <div class="stat grow"></div>
+      <button class="iconbtn" id="btn-dock-toggle" title="Collapse the console"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><use href="#i-chevron"/></svg></button>
+    </div>
+    <div class="dock-body">
+      <div class="dock-cell">
+        <div class="lbl">Unsigned TX hex
+          <button class="iconbtn" data-copy-el="dock-hex" title="Copy"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><use href="#i-copy"/></svg></button>
+          <span class="mutedc" id="dock-txid"></span>
+        </div>
+        <div class="val empty" id="dock-hex">—</div>
+      </div>
+      <div class="dock-cell">
+        <div class="lbl">PSBT (base64)
+          <button class="iconbtn" data-copy-el="dock-psbt" title="Copy"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><use href="#i-copy"/></svg></button>
+          <span class="mutedc" id="dock-psbt-ver"></span>
+        </div>
+        <div class="val empty" id="dock-psbt">—</div>
+      </div>
+      <div class="dock-cell">
+        <div class="lbl">Validation</div>
+        <div class="val" id="dock-val">—</div>
+      </div>
+    </div>
+  </footer>
+</div>
+
+<div id="toasts"></div>
+
+<div class="modal-back" id="modal">
+  <div class="modal">
+    <header><h3 id="modal-title">Title</h3><button class="iconbtn" id="modal-close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><use href="#i-x"/></svg></button></header>
+    <div class="mbody" id="modal-body"></div>
+    <footer id="modal-foot"></footer>
+  </div>
+</div>
+
+<input type="file" id="file-input" class="hidden">
+
+<script src="js/crypto.js"></script>
+<script src="js/encoding.js"></script>
+<script src="js/script.js"></script>
+<script src="js/tx.js"></script>
+<script src="js/sighash.js"></script>
+<script src="js/psbt.js"></script>
+<script src="js/validate.js"></script>
+<script src="js/tools.js"></script>
+<script src="js/multisig.js"></script>
+<script src="js/node.js"></script>
+<script src="js/ui.js"></script>
+</body>
+</html>
