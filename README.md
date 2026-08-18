@@ -11,14 +11,38 @@ design.
 construct → inspect → compute signing data → export → sign elsewhere → import signatures → finalize
 ```
 
-**Live demo: [idlebg.com/idleanvil](https://idlebg.com/idleanvil/)** — nothing to
-install, and the page talks to no one. Deep links open straight into a workspace:
+## Live demos — two forges, one brief
+
+This repo ships **two independent implementations** of the same tool. The difference
+is the harness, not the model: **idleAnvil** was forged with **Claude Code**,
+**TXCRAFT** with the **Claude Design** harness — both by **Claude Fable**. Two
+codebases, one set of BIPs, agreeing byte-for-byte on the test vectors. Click a
+screenshot to open it — nothing to install, and neither page talks to anyone.
+
+<table>
+<tr>
+<th align="center"><a href="https://idlebg.com/idleanvil/">⚒️ idleAnvil</a></th>
+<th align="center"><a href="https://idlebg.com/idleanvil/txcraft/">⚒️ TXCRAFT</a></th>
+</tr>
+<tr>
+<td align="center"><a href="https://idlebg.com/idleanvil/"><img src="docs/screenshots/01-transaction.png" alt="idleAnvil — the Transaction workspace of the live demo"></a></td>
+<td align="center"><a href="https://idlebg.com/idleanvil/txcraft/"><img src="docs/screenshots/07-txcraft.png" alt="TXCRAFT — the Transaction envelope of the live demo"></a></td>
+</tr>
+<tr>
+<td align="center">built with <b>Claude Code</b> · Claude Fable<br>hand-wired classic scripts — this repo's <code>js/</code><br>13 workspaces · 30 templates · deep links</td>
+<td align="center">built with <b>Claude Design</b> · Claude Fable<br>one self-contained file — <code>variants/txcraft/</code><br>13 tabs · byte-map inspector · own engine</td>
+</tr>
+<tr>
+<td align="center"><b><a href="https://idlebg.com/idleanvil/">▶ open idleAnvil</a></b></td>
+<td align="center"><b><a href="https://idlebg.com/idleanvil/txcraft/">▶ open TXCRAFT</a></b></td>
+</tr>
+</table>
+
+Deep links open idleAnvil straight into a workspace:
 [#multisig](https://idlebg.com/idleanvil/#multisig) ·
 [#signing](https://idlebg.com/idleanvil/#signing) ·
 [#inspector](https://idlebg.com/idleanvil/#inspector) ·
 [#script](https://idlebg.com/idleanvil/#script)
-
-![idleAnvil — the Transaction workspace](docs/screenshots/01-transaction.png)
 
 ## Running it
 
@@ -273,13 +297,12 @@ whatever workspace you are in. Keys `1`–`9`, `0`, `-`, `=` and `m` switch work
 
 ## TXCRAFT — the sibling forge
 
-![TXCRAFT — the Claude Design variant](docs/screenshots/07-txcraft.png)
-
-The repo carries a second, **independently written** implementation of the same
-brief: **[TXCRAFT](variants/txcraft/)** — a single self-contained file forged by
-Claude Fable through **Claude Design**. Its own Bitcoin engine, its own design
-system, the same never-signs boundary — which makes the two forges useful checks on
-each other: two codebases, one set of BIPs, agreeing byte-for-byte on the vectors.
+The second forge in the demo table above: **[TXCRAFT](variants/txcraft/)** — the
+same brief implemented **independently**, as a single self-contained file, by
+Claude Fable through the **Claude Design** harness (where idleAnvil itself was
+forged with **Claude Code**). Its own Bitcoin engine, its own design system, the
+same never-signs boundary — which makes the two forges useful checks on each
+other: two codebases, one set of BIPs, agreeing byte-for-byte on the vectors.
 
 **Try it: [idlebg.com/idleanvil/txcraft](https://idlebg.com/idleanvil/txcraft/)** —
 or grab [`variants/txcraft/txcraft-standalone.html`](variants/txcraft/) (one file,
