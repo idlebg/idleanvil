@@ -270,6 +270,24 @@ the live unsigned hex, the live PSBT base64 and the current validation verdict �
 whatever workspace you are in. Keys `1`–`9`, `0`, `-`, `=` and `m` switch workspaces;
 `Ctrl+S` / `Ctrl+O` save and open project files; `Ctrl+E` copies the unsigned hex.
 
+## TXCRAFT — the sibling forge
+
+![TXCRAFT — the Claude Design variant](docs/screenshots/07-txcraft.png)
+
+The repo carries a second, **independently written** implementation of the same
+brief: **[TXCRAFT](variants/txcraft/)** — a single self-contained file forged by
+Claude Fable through **Claude Design**. Its own Bitcoin engine, its own design
+system, the same never-signs boundary — which makes the two forges useful checks on
+each other: two codebases, one set of BIPs, agreeing byte-for-byte on the vectors.
+
+**Try it: [idlebg.com/idleanvil/txcraft](https://idlebg.com/idleanvil/txcraft/)** —
+or grab [`variants/txcraft/txcraft-standalone.html`](variants/txcraft/) (one file,
+React and all, works from `file://`) and read its
+[README](variants/txcraft/README.md). It ships with its own 43-check harness
+(`node variants/txcraft/verify.js`), anchored to the BIP143 and BIP86 vectors.
+Cross-links run both ways: TXCRAFT's header carries an *idleAnvil variant* chip, and
+this app's About dialog points at TXCRAFT.
+
 ## Networks
 
 **Mainnet** · Testnet3 · Testnet4 (BIP94) · Signet · Regtest — all five fully enabled,

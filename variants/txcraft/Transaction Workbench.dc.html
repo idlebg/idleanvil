@@ -1,0 +1,1954 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TXCRAFT — Bitcoin Transaction Workbench</title>
+<link rel="stylesheet" href="nocturne.css">
+<style>
+  html, body { margin: 0; background: #161826; }
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-thumb { background: #3f424d; border-radius: 6px; }
+  ::-webkit-scrollbar-thumb:hover { background: #595d6c; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  a { color: #9184d9; }
+  a:hover { color: #d2cefd; }
+  input[type="number"] { -moz-appearance: textfield; }
+  input[type="number"]::-webkit-outer-spin-button,
+  input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+</style>
+<script src="btc-core.js"></script>
+<script src="btc-tx.js"></script>
+<script src="btc-psbt.js"></script>
+<script src="btc-fulcrum.js"></script>
+</helmet>
+
+<template id="__bundler_thumbnail">
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" fill="#161826"/><rect x="30" y="30" width="40" height="40" rx="8" fill="none" stroke="#9184d9" stroke-width="3"/><circle cx="50" cy="50" r="6" fill="#9184d9"/></svg>
+</template>
+
+<div style="min-height:100vh;display:flex;flex-direction:column;background:#161826;color:#e9e9ed;font-family:Inter,system-ui,sans-serif;font-size:15px">
+
+  <header style="display:flex;align-items:center;gap:16.8px;flex-wrap:wrap;padding:11.2px 16.8px 8.4px;position:sticky;top:0;z-index:20;background:linear-gradient(#161826 76%,rgba(22,24,38,0))">
+    <div style="display:flex;align-items:baseline;gap:8.4px;margin-right:auto">
+      <span style="font-weight:500;font-size:18px;letter-spacing:-0.015em">TXCRAFT</span>
+      <span style="font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:#9184d9">Bitcoin transaction workbench</span>
+      <span style="font-size:11px;color:#75798c">no keys · no network · construction only</span>
+      <a href="https://idlebg.com/idleanvil/" target="_blank" rel="noopener" title="TXCRAFT is the single-file sibling of idleAnvil, forged by Claude Fable through Claude Design — open the main forge" style="font-size:11px;color:#75798c;text-decoration:none;border:1px solid rgba(233,233,237,0.14);border-radius:6px;padding:2px 8px;white-space:nowrap">⚒ an <span style="color:#b5abfc">idleAnvil</span> variant · source <span style="color:#b5abfc">github.com/idlebg/idleanvil</span></a>
+    </div>
+    <div style="display:flex;align-items:center;gap:8.4px;flex-wrap:wrap">
+      <span style="font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:#75798c">Network</span>
+      <div class="seg">
+        <sc-for list="{{ networks }}" as="n" hint-placeholder-count="5">
+          <label class="seg-opt" style="white-space:nowrap"><input type="radio" checked="{{ n.on }}" onChange="{{ n.pick }}" />{{ n.label }}</label>
+        </sc-for>
+      </div>
+      <div class="seg">
+        <sc-for list="{{ modes }}" as="m" hint-placeholder-count="2">
+          <label class="seg-opt" style="white-space:nowrap"><input type="radio" checked="{{ m.on }}" onChange="{{ m.pick }}" />{{ m.label }}</label>
+        </sc-for>
+      </div>
+      <button class="btn" style="border-color:{{ chainEdge }};color:{{ chainTone }};font-size:11.5px;padding:4px 10px;display:inline-flex;gap:6px;align-items:center;white-space:nowrap" onClick="{{ onChainTab }}"><span style="width:7px;height:7px;border-radius:50%;background:{{ chainTone }};box-shadow:0 0 0 3px {{ chainHalo }};flex:none"></span>{{ chainLabel }}</button>
+      <button class="btn btn-secondary" onClick="{{ onReset }}">Reset</button>
+    </div>
+  </header>
+
+  <nav style="display:flex;gap:2.8px;flex-wrap:wrap;padding:0 16.8px 8.4px;position:sticky;top:52px;z-index:19;background:#161826">
+    <sc-for list="{{ tabs }}" as="t" hint-placeholder-count="12">
+      <button class="btn" style="border-color:{{ t.border }};color:{{ t.color }};font-size:12px;padding:4px 10px;letter-spacing:0.06em;text-transform:uppercase;white-space:nowrap" onClick="{{ t.pick }}">{{ t.label }}<span style="font-size:10px;opacity:0.6;margin-left:5px">{{ t.count }}</span></button>
+    </sc-for>
+  </nav>
+
+  <div style="display:flex;align-items:center;flex-wrap:wrap;gap:0;padding:0 16.8px 11.2px">
+    <sc-for list="{{ steps }}" as="s" hint-placeholder-count="5">
+      <div style="display:flex;align-items:center;gap:8.4px;padding-right:8.4px;cursor:pointer" onClick="{{ s.go }}">
+        <span style="width:8px;height:8px;border-radius:50%;background:{{ s.dot }};box-shadow:0 0 0 3px {{ s.halo }};flex:none"></span>
+        <span style="font-size:10.5px;letter-spacing:0.09em;text-transform:uppercase;color:{{ s.tone }};white-space:nowrap">{{ s.label }}</span>
+        <span style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10.5px;color:#5d5294;white-space:nowrap">{{ s.detail }}</span>
+        <span style="width:30px;height:1px;background:linear-gradient(to right,{{ s.rule }},rgba(233,233,237,0));flex:none;margin-left:5.6px"></span>
+      </div>
+    </sc-for>
+  </div>
+
+  <main style="flex:1;padding:8.4px 16.8px 200px;display:flex;flex-direction:column;gap:16.8px">
+
+    <div style="display:flex;align-items:baseline;gap:11.2px;flex-wrap:wrap">
+      <h3 style="margin:0">{{ panelTitle }}</h3>
+      <span style="font-size:13px;color:#9397ab;max-width:70ch;text-wrap:pretty">{{ panelNote }}</span>
+      <div style="display:flex;gap:5.6px;margin-left:auto">
+        <sc-for list="{{ panelActions }}" as="a" hint-placeholder-count="2">
+          <button class="btn btn-primary" style="font-size:12px;white-space:nowrap" onClick="{{ a.on }}">{{ a.label }}</button>
+        </sc-for>
+      </div>
+    </div>
+
+    <sc-for list="{{ blocks }}" as="blk" hint-placeholder-count="3">
+      <section style="border-radius:8px;background:#232532;box-shadow:0 0 0 1px {{ blk.edge }};overflow:hidden">
+        <div style="display:flex;align-items:center;gap:8.4px;flex-wrap:wrap;padding:8.4px 11.2px;background:{{ blk.headBg }}">
+          <span style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;letter-spacing:0.08em;color:#9184d9">{{ blk.kicker }}</span>
+          <span style="font-weight:500;font-size:15px">{{ blk.title }}</span>
+          <sc-for list="{{ blk.badges }}" as="b" hint-placeholder-count="1">
+            <span class="tag" style="background:{{ b.bg }};color:{{ b.fg }}">{{ b.label }}</span>
+          </sc-for>
+          <div style="display:flex;gap:5.6px;margin-left:auto;flex-wrap:wrap">
+            <sc-for list="{{ blk.actions }}" as="a" hint-placeholder-count="0">
+              <button class="btn btn-secondary" style="font-size:11.5px;padding:3px 9px;white-space:nowrap" onClick="{{ a.on }}">{{ a.label }}</button>
+            </sc-for>
+          </div>
+        </div>
+        <sc-for list="{{ blk.groups }}" as="grp" hint-placeholder-count="2">
+          <div style="padding:11.2px;border-top:1px solid rgba(233,233,237,0.08)">
+            <div style="display:flex;align-items:flex-start;flex-wrap:wrap;gap:2.8px 8.4px;margin-bottom:8.4px">
+              <h6 style="margin:0;color:#b2b6ca;line-height:1.5;white-space:nowrap">{{ grp.title }}</h6>
+              <span style="flex:1;min-width:180px;font-size:11.5px;line-height:1.5;color:#75798c;text-wrap:pretty">{{ grp.note }}</span>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:11.2px">
+              <sc-for list="{{ grp.fields }}" as="f" hint-placeholder-count="4">
+                <div style="display:flex;flex-direction:column;gap:5px;min-width:0;grid-column:{{ f.gc }}">
+                  <sc-if value="{{ f.hasLabel }}" hint-placeholder-val="{{ true }}">
+                    <label style="display:flex;flex-wrap:wrap;gap:2px 6px;align-items:baseline;line-height:1.45;font-size:10.5px;letter-spacing:0.07em;text-transform:uppercase;color:#9397ab">{{ f.label }}<span style="text-transform:none;letter-spacing:0;font-size:10.5px;color:#5d5294">{{ f.unit }}</span></label>
+                  </sc-if>
+
+                  <sc-if value="{{ f.isText }}">
+                    <input class="input" style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12.5px;border-color:{{ f.edge }}" value="{{ f.value }}" placeholder="{{ f.ph }}" spellcheck="false" onChange="{{ f.on }}" />
+                  </sc-if>
+                  <sc-if value="{{ f.isNum }}">
+                    <input class="input" type="number" style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12.5px" value="{{ f.value }}" placeholder="{{ f.ph }}" onChange="{{ f.on }}" />
+                  </sc-if>
+                  <sc-if value="{{ f.isArea }}">
+                    <textarea class="input" style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12.5px;line-height:1.5;min-height:{{ f.h }}" value="{{ f.value }}" placeholder="{{ f.ph }}" spellcheck="false" onChange="{{ f.on }}"></textarea>
+                  </sc-if>
+                  <sc-if value="{{ f.isSel }}">
+                    <select class="input" style="font-size:12.5px" value="{{ f.value }}" onChange="{{ f.on }}">
+                      <sc-for list="{{ f.options }}" as="o" hint-placeholder-count="3">
+                        <option value="{{ o.v }}">{{ o.l }}</option>
+                      </sc-for>
+                    </select>
+                  </sc-if>
+                  <sc-if value="{{ f.isChk }}">
+                    <label class="radio" style="font-size:12.5px;line-height:1.45;align-items:flex-start;color:{{ f.tone }}"><input type="checkbox" checked="{{ f.value }}" onChange="{{ f.on }}" /><span class="dot" style="border-radius:3px;margin-top:2px"></span>{{ f.text }}</label>
+                  </sc-if>
+                  <sc-if value="{{ f.isSeg }}">
+                    <div class="seg" style="flex-wrap:wrap">
+                      <sc-for list="{{ f.options }}" as="o" hint-placeholder-count="3">
+                        <label class="seg-opt" style="white-space:nowrap;font-size:12px"><input type="radio" checked="{{ o.on }}" onChange="{{ o.pick }}" />{{ o.l }}</label>
+                      </sc-for>
+                    </div>
+                  </sc-if>
+                  <sc-if value="{{ f.isFile }}">
+                    <input class="input" type="file" style="font-size:12px;padding:6px" onChange="{{ f.on }}" />
+                  </sc-if>
+                  <sc-if value="{{ f.isRO }}">
+                    <div style="display:flex;gap:5.6px;align-items:flex-start">
+                      <code style="flex:1;min-width:0;display:block;padding:6px 9px;border-radius:8px;background:#1b1d2b;box-shadow:inset 0 0 0 1px rgba(233,233,237,0.08);font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;line-height:1.55;word-break:break-all;white-space:pre-wrap;max-height:{{ f.h }};overflow:auto;color:{{ f.tone }}">{{ f.value }}</code>
+                      <button class="btn btn-ghost" style="font-size:10.5px;letter-spacing:0.08em;padding:4px 6px" onClick="{{ f.on }}">{{ f.copyLabel }}</button>
+                    </div>
+                  </sc-if>
+                  <sc-if value="{{ f.isStat }}">
+                    <div style="display:flex;align-items:baseline;gap:8.4px;padding:5px 0;background:linear-gradient(to right,rgba(233,233,237,0.10),rgba(233,233,237,0)) no-repeat bottom/100% 1px">
+                      <span class="tag" style="background:{{ f.bg }};color:{{ f.fg }};flex:none">{{ f.badge }}</span>
+                      <span style="font-size:12.5px;color:#cfd3e5;text-wrap:pretty">{{ f.text }}</span>
+                    </div>
+                  </sc-if>
+                  <sc-if value="{{ f.isNote }}">
+                    <p style="margin:0;font-size:12px;line-height:1.6;color:#9397ab;text-wrap:pretty">{{ f.text }}</p>
+                  </sc-if>
+                  <sc-if value="{{ f.isBtns }}">
+                    <div style="display:flex;gap:5.6px;flex-wrap:wrap">
+                      <sc-for list="{{ f.actions }}" as="a" hint-placeholder-count="2">
+                        <button class="btn btn-secondary" style="font-size:11.5px;padding:4px 10px;white-space:nowrap;color:{{ a.color }};border-color:{{ a.border }}" onClick="{{ a.on }}">{{ a.label }}</button>
+                      </sc-for>
+                    </div>
+                  </sc-if>
+
+                  <sc-if value="{{ f.hasHint }}">
+                    <span style="font-size:11px;line-height:1.5;color:{{ f.hintTone }};text-wrap:pretty">{{ f.hint }}</span>
+                  </sc-if>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </sc-for>
+      </section>
+    </sc-for>
+
+    <sc-if value="{{ showLab }}">
+      <section style="display:grid;grid-template-columns:minmax(220px,300px) 1fr;gap:16.8px;align-items:start">
+        <div style="border-radius:8px;background:#232532;box-shadow:0 0 0 1px #3f424d;padding:11.2px;position:sticky;top:96px;max-height:70vh;overflow:auto">
+          <h6 style="margin:0 0 8.4px;color:#b2b6ca">Opcode palette</h6>
+          <sc-for list="{{ opGroups }}" as="g" hint-placeholder-count="6">
+            <div style="margin-bottom:11.2px">
+              <div style="font-size:10.5px;letter-spacing:0.08em;text-transform:uppercase;color:#9184d9;margin-bottom:5px">{{ g.name }}</div>
+              <div style="display:flex;flex-wrap:wrap;gap:4px">
+                <sc-for list="{{ g.ops }}" as="o" hint-placeholder-count="8">
+                  <button class="btn" style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10.5px;padding:2px 6px;border-color:{{ o.border }};color:{{ o.color }}" onClick="{{ o.push }}">{{ o.short }}<span style="opacity:0.45;margin-left:5px">{{ o.hex }}</span></button>
+                </sc-for>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:11.2px">
+          <div style="border-radius:8px;background:#232532;box-shadow:0 0 0 1px #3f424d;padding:11.2px;display:flex;flex-direction:column;gap:8.4px">
+            <div style="display:flex;align-items:baseline;gap:8.4px"><h6 style="margin:0;color:#b2b6ca">ASM</h6><span style="font-size:11px;color:#75798c">opcodes, hex pushes, 'text', or decimal numbers — whitespace separated</span></div>
+            <textarea class="input" style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px;line-height:1.6;min-height:120px" value="{{ labAsm }}" spellcheck="false" onChange="{{ onLabAsm }}"></textarea>
+            <div style="display:flex;align-items:baseline;gap:8.4px"><h6 style="margin:0;color:#b2b6ca">HEX</h6><span style="font-size:11px;color:#75798c">edit either side — the other follows</span></div>
+            <textarea class="input" style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px;line-height:1.6;min-height:80px" value="{{ labHex }}" spellcheck="false" onChange="{{ onLabHex }}"></textarea>
+            <div style="display:flex;gap:5.6px;flex-wrap:wrap">
+              <sc-for list="{{ labActions }}" as="a" hint-placeholder-count="4">
+                <button class="btn btn-primary" style="font-size:11.5px;padding:4px 10px" onClick="{{ a.on }}">{{ a.label }}</button>
+              </sc-for>
+            </div>
+          </div>
+          <div style="border-radius:8px;background:#232532;box-shadow:0 0 0 1px #3f424d;padding:11.2px">
+            <h6 style="margin:0 0 8.4px;color:#b2b6ca">Derived</h6>
+            <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:8.4px">
+              <sc-for list="{{ labDerived }}" as="d" hint-placeholder-count="6">
+                <div style="display:flex;flex-direction:column;gap:3px;min-width:0">
+                  <span style="font-size:10.5px;letter-spacing:0.07em;text-transform:uppercase;color:#9397ab">{{ d.label }}</span>
+                  <code style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;word-break:break-all;color:{{ d.tone }};cursor:pointer" onClick="{{ d.copy }}">{{ d.value }}</code>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+          <div style="border-radius:8px;background:#232532;box-shadow:0 0 0 1px #3f424d;padding:11.2px">
+            <h6 style="margin:0 0 8.4px;color:#b2b6ca">Disassembly</h6>
+            <div style="display:flex;flex-direction:column;gap:2px">
+              <sc-for list="{{ labParts }}" as="p" hint-placeholder-count="5">
+                <div style="display:grid;grid-template-columns:52px 1fr 2fr;gap:8.4px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;padding:3px 0;background:linear-gradient(to right,rgba(233,233,237,0.07),rgba(233,233,237,0)) no-repeat bottom/100% 1px">
+                  <span style="color:#5d5294">{{ p.offset }}</span>
+                  <span style="color:{{ p.tone }};word-break:break-all">{{ p.name }}</span>
+                  <span style="color:#75798c;word-break:break-all">{{ p.detail }}</span>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+      </section>
+    </sc-if>
+
+    <sc-if value="{{ showInspector }}">
+      <section style="display:flex;flex-direction:column;gap:11.2px">
+        <div style="border-radius:8px;background:#232532;box-shadow:0 0 0 1px #3f424d;padding:11.2px;display:flex;flex-direction:column;gap:8.4px">
+          <div style="display:flex;align-items:center;gap:8.4px;flex-wrap:wrap">
+            <h6 style="margin:0;color:#b2b6ca">Byte map</h6>
+            <div class="seg">
+              <sc-for list="{{ inspectSources }}" as="s" hint-placeholder-count="2">
+                <label class="seg-opt" style="white-space:nowrap;font-size:12px"><input type="radio" checked="{{ s.on }}" onChange="{{ s.pick }}" />{{ s.l }}</label>
+              </sc-for>
+            </div>
+            <span style="font-size:11.5px;color:#75798c">{{ inspectSummary }}</span>
+          </div>
+          <sc-if value="{{ inspectPasteMode }}">
+            <textarea class="input" style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12.5px;min-height:90px" value="{{ inspectHex }}" placeholder="paste any raw transaction hex" spellcheck="false" onChange="{{ onInspectHex }}"></textarea>
+          </sc-if>
+          <div style="display:flex;flex-wrap:wrap;gap:11.2px;align-items:center;padding-bottom:2.8px">
+            <sc-for list="{{ legend }}" as="l" hint-placeholder-count="5">
+              <span style="display:inline-flex;align-items:center;gap:5px;font-size:10px;letter-spacing:0.07em;text-transform:uppercase;color:#9397ab;white-space:nowrap"><span style="padding:1px 4px;border-radius:3px;background:{{ l.bg }};color:{{ l.fg }};font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:10px;letter-spacing:0;text-transform:none;flex:none">ab</span>{{ l.label }}</span>
+            </sc-for>
+          </div>
+          <div style="display:flex;flex-wrap:wrap;gap:5px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px;line-height:1.7">
+            <sc-for list="{{ inspectChunks }}" as="c" hint-placeholder-count="8">
+              <span style="padding:2px 6px;border-radius:4px;background:{{ c.bg }};color:{{ c.fg }};box-shadow:{{ c.ring }};word-break:break-all;cursor:pointer;max-width:100%" onClick="{{ c.pick }}">{{ c.hex }}</span>
+            </sc-for>
+          </div>
+        </div>
+        <div style="border-radius:8px;background:#232532;box-shadow:0 0 0 1px #3f424d;padding:11.2px">
+          <h6 style="margin:0 0 8.4px;color:#b2b6ca">Fields</h6>
+          <div style="display:flex;flex-direction:column">
+            <sc-for list="{{ inspectRows }}" as="r" hint-placeholder-count="8">
+              <div style="display:grid;grid-template-columns:150px 70px 1fr;gap:8.4px;padding:5px 0;font-size:12px;background:linear-gradient(to right,rgba(233,233,237,0.07),rgba(233,233,237,0)) no-repeat bottom/100% 1px;cursor:pointer" onClick="{{ r.pick }}">
+                <span style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;color:{{ r.tone }}">{{ r.label }}</span>
+                <span style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;color:#5d5294">{{ r.range }}</span>
+                <span style="color:#9397ab;text-wrap:pretty">{{ r.desc }}</span>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+        <div style="border-radius:8px;background:#232532;box-shadow:0 0 0 1px #3f424d;padding:11.2px;overflow:auto">
+          <div style="display:flex;align-items:baseline;gap:8.4px;margin-bottom:8.4px">
+            <h6 style="margin:0;color:#b2b6ca">Hex dump</h6>
+            <span style="font-size:11px;color:#75798c">{{ dumpNote }}</span>
+          </div>
+          <div style="display:flex;flex-direction:column;width:max-content;min-width:100%">
+            <sc-for list="{{ dumpRows }}" as="row" hint-placeholder-count="6">
+              <div style="display:grid;grid-template-columns:62px auto auto;justify-content:start;gap:16.8px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;line-height:1.65">
+                <span style="color:#5d5294">{{ row.offset }}</span>
+                <span style="display:flex;gap:1px">
+                  <sc-for list="{{ row.cells }}" as="c" hint-placeholder-count="16">
+                    <span style="padding:0 3px;border-radius:2px;background:{{ c.bg }};color:{{ c.fg }}">{{ c.hex }}</span>
+                  </sc-for>
+                </span>
+                <span style="color:#75798c;letter-spacing:0.08em;white-space:pre">{{ row.ascii }}</span>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </section>
+    </sc-if>
+
+    <sc-if value="{{ showSighashViz }}">
+      <section style="border-radius:8px;background:#232532;box-shadow:0 0 0 1px #3f424d;padding:11.2px;overflow:auto">
+        <div style="display:flex;align-items:baseline;gap:8.4px;margin-bottom:8.4px;flex-wrap:wrap">
+          <h6 style="margin:0;color:#b2b6ca">What each sighash type commits to</h6>
+          <span style="font-size:11.5px;color:#75798c">{{ vizNote }}</span>
+        </div>
+        <table class="table" style="font-size:12.5px;min-width:820px">
+          <thead>
+            <tr>
+              <th style="width:230px">Committed field</th>
+              <sc-for list="{{ vizCols }}" as="c" hint-placeholder-count="8">
+                <th style="text-align:center;color:{{ c.tone }}">{{ c.label }}</th>
+              </sc-for>
+            </tr>
+          </thead>
+          <tbody>
+            <sc-for list="{{ vizRows }}" as="r" hint-placeholder-count="10">
+              <tr>
+                <td style="color:#cfd3e5">{{ r.label }}<span style="display:block;font-size:10.5px;color:#75798c">{{ r.note }}</span></td>
+                <sc-for list="{{ r.cells }}" as="c" hint-placeholder-count="8">
+                  <td style="text-align:center;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;color:{{ c.tone }}">{{ c.mark }}</td>
+                </sc-for>
+              </tr>
+            </sc-for>
+          </tbody>
+        </table>
+      </section>
+    </sc-if>
+
+  </main>
+
+  <footer style="position:fixed;left:0;right:0;bottom:0;z-index:30;background:rgba(22,24,38,0.94);backdrop-filter:blur(10px);box-shadow:0 -1px 0 rgba(233,233,237,0.12),0 -14px 40px rgba(0,0,0,0.5);padding:8.4px 16.8px">
+    <div style="display:flex;align-items:center;gap:16.8px;flex-wrap:wrap;margin-bottom:5.6px">
+      <sc-for list="{{ metrics }}" as="m" hint-placeholder-count="9">
+        <div style="display:flex;align-items:baseline;gap:5px">
+          <span style="font-size:10px;letter-spacing:0.08em;text-transform:uppercase;color:#75798c">{{ m.label }}</span>
+          <span style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px;color:{{ m.tone }}">{{ m.value }}</span>
+        </div>
+      </sc-for>
+      <span class="tag" style="margin-left:auto;background:{{ statusBg }};color:{{ statusFg }}">{{ statusLabel }}</span>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:8.4px">
+      <sc-for list="{{ liveRows }}" as="r" hint-placeholder-count="3">
+        <div style="display:flex;align-items:center;gap:5.6px;min-width:0">
+          <span style="font-size:9.5px;letter-spacing:0.08em;text-transform:uppercase;color:#75798c;flex:none;width:74px">{{ r.label }}</span>
+          <code style="flex:1;min-width:0;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:{{ r.tone }}">{{ r.value }}</code>
+          <button class="btn btn-ghost" style="font-size:10px;letter-spacing:0.08em;padding:2px 5px;flex:none" onClick="{{ r.copy }}">{{ r.copyLabel }}</button>
+        </div>
+      </sc-for>
+    </div>
+  </footer>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1440,&quot;height&quot;:960},&quot;defaultNetwork&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;mainnet&quot;,&quot;testnet3&quot;,&quot;testnet4&quot;,&quot;signet&quot;,&quot;regtest&quot;],&quot;default&quot;:&quot;testnet3&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Defaults&quot;},&quot;forensicByDefault&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Defaults&quot;},&quot;defaultTxVersion&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;default&quot;:2,&quot;min&quot;:0,&quot;max&quot;:4,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Defaults&quot;},&quot;defaultSequence&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;fffffffd&quot;,&quot;fffffffe&quot;,&quot;ffffffff&quot;],&quot;default&quot;:&quot;fffffffd&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Defaults&quot;},&quot;autosave&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Behaviour&quot;}}">
+const NET_ORDER = ['mainnet', 'testnet3', 'testnet4', 'signet', 'regtest'];
+const TABS = [
+  ['chain', 'Chain'], ['tx', 'Transaction'], ['in', 'Inputs'], ['out', 'Outputs'], ['script', 'Script lab'],
+  ['opret', 'OP_RETURN'], ['sign', 'Signing data'], ['psbt', 'PSBT lab'], ['final', 'Finalize'],
+  ['inspect', 'Inspector'], ['sighash', 'Sighash'], ['valid', 'Validation'], ['rpc', 'Core RPC']
+];
+const newChain = () => ({
+  url: 'ws://127.0.0.1:50003', status: 'idle', note: '', server: null, banner: '',
+  height: null, fees: {}, relayfee: null, addr: '', utxos: [], history: [], balance: null,
+  txid: '', raw: '', busy: '', log: [], hydrate: true
+});
+const ACC = '#9184d9', ACC1 = '#f5f4ff', ACC2 = '#e7e5fe', ACC3 = '#d2cefd', ACC4 = '#b5abfc', ACC5 = '#968ae0', ACC6 = '#796cbf', ACC7 = '#5d5294', ACC8 = '#423a6a', ACC9 = '#2b2741';
+const N1 = '#f3f5fe', N2 = '#e4e7f5', N3 = '#cfd3e5', N4 = '#b2b6ca', N5 = '#9397ab', N6 = '#75798c', N7 = '#595d6c', N8 = '#3f424d', N9 = '#292b31';
+const SECTION = '#262a60', SECTION_GLOW = '#353b80';
+/* Status hues sit on the ramps' own lightness steps at a chroma below the accent's,
+   so they read as states rather than as a second brand colour. */
+const WARN_FG = '#e0c48d', WARN_BG = '#39311f', WARN_TXT = '#f2e5c6';
+const ERR_FG = '#e0989e', ERR_BG = '#3b2429', ERR_TXT = '#f5d3d7';
+const TONE = {
+  ok: { bg: ACC9, fg: ACC3, text: ACC4 },
+  warn: { bg: WARN_BG, fg: WARN_TXT, text: WARN_FG },
+  err: { bg: ERR_BG, fg: ERR_TXT, text: ERR_FG },
+  info: { bg: N9, fg: N4, text: N4 }
+};
+/* Semantic colour code for monospace data. The Inspector renders this as a legend. */
+const KIND = {
+  txid: ACC3, script: ACC4, opcode: ACC3, push: N3, hash: ACC4, key: ACC2,
+  amount: N1, address: ACC2, sequence: N4, index: N5, meta: N6, psbt: N3,
+  sig: WARN_FG, warn: WARN_FG, err: ERR_FG, ok: ACC4, plain: '#e9e9ed'
+};
+/* Byte-map bands (left) and the data-kind text code (right). */
+const LEGEND = [
+  { label: 'header', bg: 'rgba(147,151,171,0.16)', fg: '#e9e9ed' },
+  { label: 'input', bg: 'rgba(145,132,217,0.18)', fg: '#e9e9ed' },
+  { label: 'scriptSig', bg: 'rgba(145,132,217,0.30)', fg: '#e9e9ed' },
+  { label: 'output', bg: 'rgba(145,132,217,0.09)', fg: '#e9e9ed' },
+  { label: 'witness', bg: 'rgba(181,171,252,0.26)', fg: '#e9e9ed' },
+  { label: 'txid', bg: 'transparent', fg: ACC3 },
+  { label: 'script', bg: 'transparent', fg: ACC4 },
+  { label: 'key', bg: 'transparent', fg: ACC2 },
+  { label: 'amount', bg: 'transparent', fg: N1 },
+  { label: 'signature', bg: 'transparent', fg: WARN_FG }
+];
+const newInput = (seq) => ({
+  txid: '', vout: 0, sequence: seq || 'fffffffd', amount: 0, spk: '', template: 'auto',
+  redeem: '', wscript: '', prevTx: '',
+  internal: '', leaves: '', leafIdx: 0, tapPath: 'key', annex: '', codesep: '',
+  sighash: 'ALL', acp: false, manualSS: false, scriptSig: '', manualW: false, witness: ''
+});
+const newOutput = () => ({
+  amount: 0, mode: 'address', address: '', tpl: 'p2wpkh',
+  pubkey: '', hash: '', script: '', m: 2, keys: '', lock: '', internal: '', merkle: '',
+  asm: '', hex: '', src: 'asm',
+  opEnc: 'utf8', opPayload: '', opForce: 'auto', opNonMin: false, opMulti: false, opPrefix: ''
+});
+
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    const p = props || {};
+    this.state = {
+      tab: 'tx',
+      network: p.defaultNetwork || 'testnet3',
+      mode: p.forensicByDefault ? 'forensic' : 'normal',
+      version: p.defaultTxVersion || 2,
+      locktime: 0, ltMode: 'auto', serial: 'auto', psbtVer: 0,
+      modInputs: true, modOutputs: true, modSingle: false,
+      inputs: [newInput(p.defaultSequence)], outputs: [newOutput()],
+      signIdx: 0,
+      lab: { asm: 'OP_DUP OP_HASH160 751e76e8199196d454941c45d1b3a323f1433bd6 OP_EQUALVERIFY OP_CHECKSIG', hex: '', src: 'asm' },
+      opret: { enc: 'utf8', payload: '', force: 'auto', nonMinimal: false, multi: false, prefix: '', fileHex: '' },
+      psbtIn: '', psbtMsg: null,
+      fin: { mode: 'psbt', psbt: '', der: '', pubkey: '', r: '', s: '', sh: '01', schnorr: '', json: '', target: 0 },
+      finals: {},
+      inspect: { hex: '', sel: null, src: 'built' },
+      chain: newChain(),
+      copied: null
+    };
+    this._restored = false;
+  }
+
+  componentDidMount() {
+    try {
+      const raw = localStorage.getItem('txcraft.state.v1');
+      if (raw && this.props.autosave !== false) {
+        const s = JSON.parse(raw);
+        if (s && s.inputs && s.outputs) this.setState(Object.assign({}, s, {
+          copied: null, psbtMsg: null,
+          chain: Object.assign(newChain(), { url: (s.chain && s.chain.url) || newChain().url })
+        }));
+      }
+    } catch (e) { /* fresh start */ }
+    this._restored = true;
+    this._waitEngine(0);
+  }
+  _waitEngine(n) {
+    const B = window.BTC;
+    if (B && B.buildPsbt && B.sighashTaproot) { this.forceUpdate(); return; }
+    if (n > 200) return;
+    this._eng = setTimeout(() => this._waitEngine(n + 1), 40);
+  }
+  componentWillUnmount() { clearTimeout(this._eng); clearTimeout(this._save); clearTimeout(this._ct); if (this._fx) this._fx.close(); }
+
+  /* ── Fulcrum / Electrum ─────────────────────────────────── */
+  chainSet(obj) { this.setState((s) => ({ chain: Object.assign({}, s.chain, obj) })); }
+  chainLog(text, tone) {
+    this.setState((s) => ({
+      chain: Object.assign({}, s.chain, {
+        log: [{ t: new Date().toLocaleTimeString([], { hour12: false }), text: text, tone: tone || 'info' }].concat(s.chain.log).slice(0, 60)
+      })
+    }));
+  }
+  async connectChain() {
+    const FX = window.BTC.FX;
+    if (this._fx) { try { this._fx.close(); } catch (e) { /* ignore */ } }
+    const c = new FX.Electrum(this.state.chain.url.trim(), {
+      onStatus: (st, detail) => this.chainSet({ status: st, note: detail || '' }),
+      onLog: (m, t) => this.chainLog(m, t),
+      onNotify: (m, p) => { if (m === 'blockchain.headers.subscribe' && p && p[0]) { this.chainSet({ height: p[0].height }); this.chainLog('new tip ' + p[0].height, 'ok'); } }
+    });
+    this._fx = c;
+    try {
+      await c.connect();
+      const h = await FX.handshake(c);
+      this.chainSet({ server: h.version, banner: h.banner, height: h.height, relayfee: h.relayfee });
+      this.chainLog('server ' + (Array.isArray(h.version) ? h.version.join(' · protocol ') : h.version) + ' — tip ' + h.height, 'ok');
+      this.chainSet({ fees: await FX.feeRates(c) });
+      this.chainLog('fee estimates refreshed', 'ok');
+    } catch (e) { this.chainLog(e.message, 'err'); }
+  }
+  disconnectChain() { if (this._fx) this._fx.close(); this.chainSet({ status: 'closed', server: null, banner: '', height: null }); this.chainLog('disconnected', 'info'); }
+  async chainDo(label, fn) {
+    if (!this._fx || this._fx.status !== 'open') { this.chainLog(label + ': not connected', 'err'); return; }
+    this.chainSet({ busy: label });
+    try { await fn(this._fx, window.BTC.FX); } catch (e) { this.chainLog(label + ' — ' + e.message, 'err'); }
+    this.chainSet({ busy: '' });
+  }
+  fetchPrevout(idx) {
+    return this.chainDo('prevout for input ' + idx, async (c, FX) => {
+      const i = this.state.inputs[idx];
+      const txid = String(i.txid || '').trim();
+      if (!/^[0-9a-fA-F]{64}$/.test(txid)) throw new Error('fill in a 64-character previous txid first');
+      const p = await FX.prevout(c, txid, Number(i.vout) || 0);
+      this.upIn(idx, { amount: p.value, spk: p.script, prevTx: p.rawTx });
+      this.chainLog('input ' + idx + ' ← ' + p.value.toLocaleString() + ' sat · ' + window.BTC.classify(window.BTC.fromHex(p.script)).label, 'ok');
+    });
+  }
+  hydrateAll() {
+    return this.chainDo('hydrate every input', async (c, FX) => {
+      let done = 0;
+      for (let n = 0; n < this.state.inputs.length; n++) {
+        const i = this.state.inputs[n];
+        const txid = String(i.txid || '').trim();
+        if (!/^[0-9a-fA-F]{64}$/.test(txid)) continue;
+        const p = await FX.prevout(c, txid, Number(i.vout) || 0);
+        this.upIn(n, { amount: p.value, spk: p.script, prevTx: p.rawTx });
+        done++;
+      }
+      this.chainLog('hydrated ' + done + ' input(s) with their amounts and scriptPubKeys', 'ok');
+    });
+  }
+  loadUtxos() {
+    return this.chainDo('list unspent', async (c, FX) => {
+      const addr = this.state.chain.addr.trim();
+      const [utxos, bal] = [await FX.listUnspent(c, addr, this.state.network), await FX.balance(c, addr, this.state.network)];
+      this.chainSet({ utxos: utxos, balance: bal });
+      this.chainLog(utxos.length + ' unspent output(s) · confirmed ' + (bal.confirmed || 0).toLocaleString() + ' sat', 'ok');
+    });
+  }
+  loadHistory() {
+    return this.chainDo('address history', async (c, FX) => {
+      const h = await FX.history(c, this.state.chain.addr.trim(), this.state.network);
+      this.chainSet({ history: h || [] });
+      this.chainLog((h || []).length + ' history entries', 'ok');
+    });
+  }
+  addUtxo(u) {
+    this.setState((s) => ({
+      inputs: s.inputs.concat([Object.assign(newInput(this.props.defaultSequence), { txid: u.txid, vout: u.vout, amount: u.value, spk: u.script })]),
+      tab: 'in'
+    }));
+    this.chainLog('added ' + u.txid.slice(0, 12) + '…:' + u.vout + ' as an input', 'ok');
+  }
+  fetchTx(loadIt) {
+    return this.chainDo('fetch transaction', async (c, FX) => {
+      const txid = this.state.chain.txid.trim();
+      if (!/^[0-9a-fA-F]{64}$/.test(txid)) throw new Error('a txid is 64 hex characters');
+      const hex = await FX.rawTx(c, txid);
+      this.chainSet({ raw: hex });
+      this.chainLog('fetched ' + txid.slice(0, 12) + '… (' + hex.length / 2 + ' bytes)', 'ok');
+      if (loadIt) await this.importTxHex(hex, this.state.chain.hydrate);
+    });
+  }
+  async importTxHex(hex, hydrate) {
+    const B = window.BTC;
+    const tx = B.parseTx(B.fromHex(hex));
+    const finals = {};
+    const inputs = tx.ins.map((i, n) => {
+      if (i.scriptSig.length || (i.witness || []).length) finals[n] = { scriptSig: B.toHex(i.scriptSig), witness: (i.witness || []).map((w) => B.toHex(w)) };
+      return Object.assign(newInput(), { txid: i.txid, vout: i.vout, sequence: (i.sequence >>> 0).toString(16).padStart(8, '0') });
+    });
+    const outputs = tx.outs.map((o) => Object.assign(newOutput(), {
+      amount: o.value, mode: 'raw', src: 'hex', hex: B.toHex(o.script), asm: B.scriptToAsm(o.script)
+    }));
+    this.setState({ version: tx.version, locktime: tx.locktime, inputs: inputs, outputs: outputs, finals: finals, tab: 'in' });
+    this.chainLog('loaded into the crafter — ' + inputs.length + ' in, ' + outputs.length + ' out, existing unlocking data kept under Finalize', 'ok');
+    if (hydrate) { await new Promise((r) => setTimeout(r, 60)); await this.hydrateAll(); }
+  }
+  broadcast(hex) {
+    return this.chainDo('broadcast', async (c, FX) => {
+      const txid = await FX.broadcast(c, hex);
+      this.chainLog('accepted — txid ' + txid, 'ok');
+      this.chainSet({ txid: txid });
+    });
+  }
+  applyFeeRate(D, rate) {
+    const st = this.state;
+    const target = Math.max(0, Math.round(rate * D.effVsize));
+    const others = D.outs.slice(0, -1).reduce((a, d) => a + d.value, 0);
+    const last = D.outs.length - 1;
+    if (last < 0) return;
+    const amount = D.inTotal - others - target;
+    this.upOut(last, { amount: amount, mode: st.outputs[last].mode });
+    this.chainLog('output ' + last + ' set to ' + amount.toLocaleString() + ' sat for a ' + rate.toFixed(2) + ' sat/vB fee', amount < 0 ? 'err' : 'ok');
+  }
+  componentDidUpdate() {
+    if (!this._restored || this.props.autosave === false) return;
+    clearTimeout(this._save);
+    this._save = setTimeout(() => {
+      try {
+        const s = Object.assign({}, this.state);
+        delete s.copied; delete s.psbtMsg;
+        s.chain = { url: this.state.chain.url };
+        localStorage.setItem('txcraft.state.v1', JSON.stringify(s));
+      } catch (e) { /* quota */ }
+    }, 400);
+  }
+
+  /* ── helpers ────────────────────────────────────────────── */
+  set(k, v) { this.setState({ [k]: v }); }
+  patch(k, obj) { this.setState((s) => ({ [k]: Object.assign({}, s[k], obj) })); }
+  upIn(i, obj) { this.setState((s) => ({ inputs: s.inputs.map((x, j) => (j === i ? Object.assign({}, x, obj) : x)) })); }
+  upOut(i, obj) { this.setState((s) => ({ outputs: s.outputs.map((x, j) => (j === i ? Object.assign({}, x, obj) : x)) })); }
+  copy(text, id) {
+    const s = String(text == null ? '' : text);
+    const done = () => { this.setState({ copied: id }); clearTimeout(this._ct); this._ct = setTimeout(() => this.setState({ copied: null }), 1400); };
+    const fallback = () => {
+      const ta = document.createElement('textarea');
+      ta.value = s; ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      try { document.execCommand('copy'); } catch (e) { /* ignore */ }
+      document.body.removeChild(ta);
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(s).then(done, () => { fallback(); done(); });
+    else { fallback(); done(); }
+  }
+  download(name, data, mime) {
+    const blob = data instanceof Uint8Array ? new Blob([data], { type: mime || 'application/octet-stream' }) : new Blob([String(data)], { type: mime || 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = name; a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1500);
+  }
+
+  /* field constructors */
+  F(kind, o) {
+    const f = Object.assign({
+      gc: 'auto', label: '', hint: '', ph: '', unit: '', h: '80px', tone: '#e9e9ed', hintTone: N6,
+      isText: false, isNum: false, isArea: false, isSel: false, isChk: false, isSeg: false,
+      isRO: false, isNote: false, isBtns: false, isStat: false, isFile: false
+    }, o || {});
+    f['is' + kind] = true;
+    f.hasLabel = !!f.label;
+    f.hasHint = !!f.hint;
+    return f;
+  }
+  text(label, value, on, o) { return this.F('Text', Object.assign({ label: label, value: value == null ? '' : value, on: on, edge: (o && o.edge) || 'rgba(233,233,237,0.16)' }, o)); }
+  num(label, value, on, o) { return this.F('Num', Object.assign({ label: label, value: value, on: on }, o)); }
+  area(label, value, on, o) { return this.F('Area', Object.assign({ label: label, value: value == null ? '' : value, on: on, gc: '1 / -1' }, o)); }
+  sel(label, value, options, on, o) { return this.F('Sel', Object.assign({ label: label, value: value, options: options, on: on }, o)); }
+  chk(text, value, on, o) { return this.F('Chk', Object.assign({ text: text, value: !!value, on: on, tone: '#cfd3e5' }, o)); }
+  seg(label, value, options, on, o) {
+    return this.F('Seg', Object.assign({
+      label: label,
+      options: options.map((op) => ({ l: op[1], v: op[0], on: value === op[0], pick: () => on(op[0]) }))
+    }, o));
+  }
+  ro(label, value, o) {
+    const id = (o && o.id) || label + ':' + String(value).slice(0, 12);
+    return this.F('RO', Object.assign({
+      label: label, value: value === '' || value == null ? '—' : value,
+      copyLabel: this.state.copied === id ? 'COPIED' : 'COPY',
+      tone: KIND[(o && o.kind) || 'plain'] || KIND.plain,
+      on: () => this.copy(value, id), gc: (o && o.gc) || '1 / -1'
+    }, o));
+  }
+  note(text, o) { return this.F('Note', Object.assign({ text: text, gc: '1 / -1' }, o)); }
+  btns(label, actions, o) { return this.F('Btns', Object.assign({ label: label, actions: actions.map((a) => Object.assign({ color: '#e9e9ed', border: 'rgba(233,233,237,0.16)' }, a)), gc: '1 / -1' }, o)); }
+  stat(badge, text, tone) { const t = TONE[tone] || TONE.info; return this.F('Stat', { badge: badge, text: text, bg: t.bg, fg: t.fg, gc: '1 / -1' }); }
+
+  /* ── derivation ─────────────────────────────────────────── */
+  hexOr(v, fallback) { try { return window.BTC.fromHex(v || ''); } catch (e) { return fallback || new Uint8Array(0); } }
+
+  tapOf(i) {
+    const B = window.BTC;
+    const out = { ok: false, error: null, leaves: [], root: null, tweak: null, outputKey: null, parity: 0, spk: null, controls: [] };
+    try {
+      const internal = B.fromHex(i.internal || '');
+      if (internal.length !== 32) { out.error = i.internal ? 'internal key must be 32 bytes (x-only)' : null; return out; }
+      const lines = String(i.leaves || '').split('\n').map((s) => s.trim()).filter(Boolean);
+      const leaves = lines.map((line) => {
+        const parts = line.split(':');
+        if (parts.length === 1) return { script: B.fromHex(parts[0]), version: 0xc0, depth: null };
+        if (parts.length === 2) return { script: B.fromHex(parts[1]), version: 0xc0, depth: parseInt(parts[0], 10) };
+        return { script: B.fromHex(parts[2]), version: parseInt(parts[1], 16), depth: parseInt(parts[0], 10) };
+      });
+      const tree = leaves.length ? B.tapTree(leaves) : { root: null, leaves: [] };
+      const tw = B.tapTweak(internal, tree.root);
+      out.ok = true;
+      out.leaves = leaves.map((l, n) => ({
+        script: l.script, version: l.version,
+        hash: B.toHex(B.tapLeafHash(l.script, l.version)),
+        control: B.toHex(B.controlBlock(l.version, tw.parity, internal, tree.leaves[n] ? tree.leaves[n].path : [])),
+        depth: tree.leaves[n] ? tree.leaves[n].depth : 0,
+        asm: B.scriptToAsm(l.script)
+      }));
+      out.root = tree.root ? B.toHex(tree.root) : '';
+      out.tweak = B.toHex(tw.tweak);
+      out.outputKey = B.toHex(tw.outputKey);
+      out.parity = tw.parity;
+      out.spk = B.p2tr(tw.outputKey);
+    } catch (e) { out.error = e.message; }
+    return out;
+  }
+
+  deriveInput(i, idx) {
+    const B = window.BTC, st = this.state;
+    const d = { idx: idx, raw: i, problems: [] };
+    d.txid = /^[0-9a-fA-F]{64}$/.test((i.txid || '').trim()) ? i.txid.trim().toLowerCase() : '';
+    if (i.txid && !d.txid) d.problems.push('previous txid must be 64 hex characters');
+    d.vout = Math.max(0, Number(i.vout) || 0);
+    d.sequence = parseInt((i.sequence || '0').replace(/^0x/, ''), 16);
+    if (!isFinite(d.sequence)) { d.sequence = 0xffffffff; d.problems.push('sequence is not hexadecimal'); }
+    d.value = Math.max(0, Math.round(Number(i.amount) || 0));
+    d.tap = this.tapOf(i);
+    try { d.spk = B.fromHex(i.spk || ''); } catch (e) { d.spk = new Uint8Array(0); d.problems.push('scriptPubKey: ' + e.message); }
+    if (!d.spk.length && d.tap.spk) d.spk = d.tap.spk;
+    d.klass = B.classify(d.spk);
+    d.type = i.template && i.template !== 'auto' ? i.template : d.klass.type;
+    d.address = B.addressFromScript(d.spk, st.network);
+    try { d.redeem = B.fromHex(i.redeem || ''); } catch (e) { d.redeem = new Uint8Array(0); d.problems.push('redeemScript: ' + e.message); }
+    try { d.wscript = B.fromHex(i.wscript || ''); } catch (e) { d.wscript = new Uint8Array(0); d.problems.push('witnessScript: ' + e.message); }
+
+    let inner = d.type;
+    if (d.type === 'p2sh' && d.redeem.length) {
+      const rc = B.classify(d.redeem);
+      if (rc.type === 'p2wpkh' || rc.type === 'p2wsh') inner = rc.type + '-in-p2sh';
+    }
+    d.inner = inner;
+    d.algo = 'legacy';
+    if (inner === 'p2wpkh' || inner === 'p2wsh' || inner === 'p2wpkh-in-p2sh' || inner === 'p2wsh-in-p2sh') d.algo = 'v0';
+    if (inner === 'p2tr') d.algo = 'taproot';
+    if (inner === 'witness_unknown') d.algo = 'unknown';
+
+    d.scriptCode = new Uint8Array(0);
+    d.scriptCodeNote = '';
+    if (d.algo === 'legacy') {
+      if (d.type === 'p2sh') { d.scriptCode = d.redeem; d.scriptCodeNote = 'the redeemScript is the executed script for a P2SH input'; }
+      else { d.scriptCode = d.spk; d.scriptCodeNote = 'the scriptPubKey is signed directly for bare/legacy outputs'; }
+    } else if (d.algo === 'v0') {
+      const keyHash = inner === 'p2wpkh' ? d.spk.slice(2) : inner === 'p2wpkh-in-p2sh' ? d.redeem.slice(2) : null;
+      if (keyHash) { d.scriptCode = B.p2pkh(keyHash); d.scriptCodeNote = 'BIP 143 substitutes the implicit P2PKH script for a P2WPKH input'; }
+      else { d.scriptCode = d.wscript; d.scriptCodeNote = 'the witnessScript is the scriptCode for a P2WSH input'; }
+    }
+    d.shByte = B.sighashByte(i.sighash, i.acp);
+    d.shLabel = B.sighashLabel(d.shByte);
+    d.witnessDerived = [];
+    return d;
+  }
+
+  deriveOutput(o, idx) {
+    const B = window.BTC, st = this.state;
+    const d = { idx: idx, raw: o, problems: [], script: new Uint8Array(0), value: Math.max(0, Math.round(Number(o.amount) || 0)) };
+    try {
+      if (o.mode === 'address') {
+        if ((o.address || '').trim()) d.script = B.addressToScript(o.address, st.network).script;
+      } else if (o.mode === 'raw') {
+        d.script = o.src === 'asm' ? B.asmToScript(o.asm || '') : B.fromHex(o.hex || '');
+      } else if (o.mode === 'opreturn') {
+        d.script = B.opReturn(this.payloads(o.opEnc, o.opPayload, o.opMulti, ''), {
+          force: o.opForce === 'auto' ? null : o.opForce, nonMinimal: o.opNonMin,
+          prefixOp: o.opPrefix ? parseInt(o.opPrefix, 16) : null
+        });
+      } else {
+        d.script = this.tplScript(o);
+      }
+    } catch (e) { d.problems.push(e.message); }
+    d.klass = B.classify(d.script);
+    d.address = B.addressFromScript(d.script, st.network);
+    d.asm = B.scriptToAsm(d.script);
+    return d;
+  }
+
+  tplScript(o) {
+    const B = window.BTC;
+    const pk = () => B.fromHex(o.pubkey || '');
+    const h20 = () => (o.hash ? B.fromHex(o.hash) : B.hash160(pk()));
+    switch (o.tpl) {
+      case 'p2pk': return B.p2pk(pk());
+      case 'p2pkh': return B.p2pkh(h20());
+      case 'p2sh': return B.p2sh(o.hash ? B.fromHex(o.hash) : B.hash160(B.fromHex(o.script || '')));
+      case 'p2wpkh': return B.p2wpkh(h20());
+      case 'p2wsh': return B.p2wsh(o.hash ? B.fromHex(o.hash) : B.sha256(B.fromHex(o.script || '')));
+      case 'p2sh-p2wpkh': return B.p2sh(B.hash160(B.p2wpkh(h20())));
+      case 'p2sh-p2wsh': return B.p2sh(B.hash160(B.p2wsh(B.sha256(B.fromHex(o.script || '')))));
+      case 'multisig': return B.multisig(Number(o.m) || 1, String(o.keys || '').split(/[\s,]+/).filter(Boolean).map((k) => B.fromHex(k)));
+      case 'p2tr': {
+        const internal = B.fromHex(o.internal || '');
+        const root = o.merkle ? B.fromHex(o.merkle) : null;
+        return B.p2tr(B.tapTweak(internal, root).outputKey);
+      }
+      case 'cltv': return B.concat([B.pushData(B.scriptNum(Number(o.lock) || 0)), new Uint8Array([0xb1, 0x75]), B.pushData(pk()), new Uint8Array([0xac])]);
+      case 'csv': return B.concat([B.pushData(B.scriptNum(Number(o.lock) || 0)), new Uint8Array([0xb2, 0x75]), B.pushData(pk()), new Uint8Array([0xac])]);
+      case 'checksig': return B.concat([B.pushData(pk()), new Uint8Array([0xac])]);
+      case 'checksigverify': return B.concat([B.pushData(pk()), new Uint8Array([0xad])]);
+      default: return new Uint8Array(0);
+    }
+  }
+
+  payloads(enc, text, multi) {
+    const B = window.BTC;
+    const one = (s) => {
+      if (enc === 'utf8') return B.utf8(s);
+      if (enc === 'ascii') return B.ascii(s);
+      if (enc === 'hex') return B.fromHex(s);
+      if (enc === 'int') return B.scriptNum(parseInt(s, 10) || 0);
+      if (enc === 'file') return B.fromHex(s);
+      return B.utf8(s);
+    };
+    const src = String(text == null ? '' : text);
+    if (multi) return src.split('\n').filter((l) => l.length).map(one);
+    return src.length || enc === 'hex' || enc === 'file' ? [one(src)] : [new Uint8Array(0)];
+  }
+
+  /* Estimated unlocking-data size for one input once it is signed:
+     ss = scriptSig bytes, wit = witness bytes including the item-count byte.
+     72 B DER+sighash / 33 B pubkey / 64 B Schnorr assumptions, like every estimator. */
+  estSpend(d) {
+    const B = window.BTC;
+    const t = d.inner;
+    if (t === 'p2wpkh') return { ss: 0, wit: 108 };
+    if (t === 'p2wpkh-in-p2sh') return { ss: 23, wit: 108 };
+    if (t === 'p2wsh' || t === 'p2wsh-in-p2sh') {
+      const ws = d.wscript.length ? d.wscript : new Uint8Array(34);
+      const kl = B.classify(ws);
+      const msig = kl.type === 'multisig' && ws[0] >= 0x51 && ws[0] <= 0x60;
+      const m = msig ? ws[0] - 0x50 : 1;
+      const wit = 1 + (msig ? 1 : 0) + m * 73 + (ws.length >= 253 ? 3 : 1) + ws.length;
+      return { ss: t === 'p2wsh-in-p2sh' ? 35 : 0, wit: wit };
+    }
+    if (t === 'p2tr') {
+      if (d.raw.tapPath === 'script' && d.tap.leaves && d.tap.leaves.length) {
+        const leaf = d.tap.leaves[Math.min(Number(d.raw.leafIdx) || 0, d.tap.leaves.length - 1)];
+        const ls = leaf.script.length, cb = leaf.control.length / 2;
+        return { ss: 0, wit: 1 + 66 + 1 + ls + 1 + cb };
+      }
+      return { ss: 0, wit: 66 };
+    }
+    if (t === 'p2pkh') return { ss: 107, wit: 0 };
+    if (t === 'p2pk') return { ss: 73, wit: 0 };
+    if (t === 'multisig') { const m = d.spk.length && d.spk[0] >= 0x51 && d.spk[0] <= 0x60 ? d.spk[0] - 0x50 : 1; return { ss: 1 + m * 73, wit: 0 }; }
+    if (t === 'p2sh') {
+      if (d.redeem.length) {
+        const kl = B.classify(d.redeem);
+        const msig = kl.type === 'multisig' && d.redeem[0] >= 0x51 && d.redeem[0] <= 0x60;
+        const sigs = msig ? 1 + (d.redeem[0] - 0x50) * 73 : 73;
+        return { ss: sigs + (d.redeem.length < 76 ? 1 : d.redeem.length <= 255 ? 2 : 3) + d.redeem.length, wit: 0 };
+      }
+      return { ss: 107, wit: 0 };
+    }
+    return { ss: 107, wit: 0 };
+  }
+
+  derive() {
+    const B = window.BTC, st = this.state;
+    const ins = st.inputs.map((i, n) => this.deriveInput(i, n));
+    const outs = st.outputs.map((o, n) => this.deriveOutput(o, n));
+    const mk = (final) => ({
+      version: Number(st.version) || 0,
+      locktime: Number(st.locktime) || 0,
+      ins: ins.map((d, n) => {
+        const fin = final ? st.finals[n] : null;
+        let ss = new Uint8Array(0), wit = [];
+        if (st.mode === 'forensic' && d.raw.manualSS) ss = this.hexOr(d.raw.scriptSig);
+        if (st.mode === 'forensic' && d.raw.manualW) wit = String(d.raw.witness || '').split(/\s+/).filter(Boolean).map((h) => this.hexOr(h));
+        if (fin) { ss = this.hexOr(fin.scriptSig); wit = (fin.witness || []).map((h) => this.hexOr(h)); }
+        return { txid: d.txid, vout: d.vout, sequence: d.sequence, scriptSig: ss, witness: wit };
+      }),
+      outs: outs.map((d) => ({ value: d.value, script: d.script }))
+    });
+    const tx = mk(false), finalTx = mk(true);
+    const ser = B.serializeTx(tx, { witness: st.serial === 'legacy' ? false : undefined });
+    const m = B.measure(tx);
+    const finalM = B.measure(finalTx);
+    const inTotal = ins.reduce((a, d) => a + d.value, 0);
+    const outTotal = outs.reduce((a, d) => a + d.value, 0);
+    const fee = inTotal - outTotal;
+    /* Fee maths must run on the size the SIGNED transaction will have, not the bare
+       unsigned skeleton — estimate per input, or use the real size once every input
+       carries unlocking data. */
+    const spends = ins.map((d) => this.estSpend(d));
+    const anyWit = spends.some((e) => e.wit > 0);
+    const ssGrowth = spends.reduce((a, e) => a + e.ss + (e.ss >= 253 ? 3 : 1) - 1, 0);
+    const witTotal = anyWit ? spends.reduce((a, e) => a + (e.wit || 1), 0) + 2 : 0;
+    const estVsize = Math.ceil(((m.stripped + ssGrowth) * 4 + witTotal) / 4);
+    const allSigned = ins.length > 0 && ins.every((d, n) => st.finals[n]);
+    const effVsize = allSigned ? finalM.vsize : estVsize;
+    return {
+      ins: ins, outs: outs, tx: tx, finalTx: finalTx, ser: ser, m: m,
+      inTotal: inTotal, outTotal: outTotal, fee: fee,
+      estVsize: estVsize, effVsize: effVsize, allSigned: allSigned,
+      rate: effVsize ? fee / effVsize : 0,
+      txid: B.txid(tx), wtxid: B.wtxid(tx),
+      finalHex: B.serializeTx(finalTx).hex, finalTxid: B.txid(finalTx),
+      finalM: finalM,
+      hasFinals: Object.keys(st.finals).length > 0
+    };
+  }
+
+  psbtModel(D) {
+    const st = this.state;
+    return {
+      version: Number(st.version) || 0, locktime: Number(st.locktime) || 0,
+      txModifiable: (st.modInputs ? 1 : 0) | (st.modOutputs ? 2 : 0) | (st.modSingle ? 4 : 0),
+      inputs: D.ins.map((d, n) => {
+        const fin = st.finals[n];
+        return {
+          txid: d.txid, vout: d.vout, sequence: d.sequence,
+          witnessUtxo: d.algo === 'v0' || d.algo === 'taproot', value: d.value, script: d.spk,
+          nonWitnessUtxo: this.hexOr(d.raw.prevTx),
+          sighashType: d.shByte,
+          redeemScript: d.redeem, witnessScript: d.wscript,
+          tapInternalKey: d.tap.ok ? window.BTC.fromHex(d.raw.internal) : null,
+          tapMerkleRoot: d.tap.root ? window.BTC.fromHex(d.tap.root) : null,
+          tapLeafScripts: d.tap.ok ? d.tap.leaves.map((l) => ({ script: l.script, leafVersion: l.version, controlBlock: window.BTC.fromHex(l.control) })) : [],
+          finalScriptSig: fin ? this.hexOr(fin.scriptSig) : null,
+          finalWitness: fin && fin.witness && fin.witness.length ? fin.witness.map((h) => this.hexOr(h)) : null,
+          partialSigs: []
+        };
+      }),
+      outputs: D.outs.map((d) => ({ value: d.value, script: d.script }))
+    };
+  }
+
+  signPack(D, idx) {
+    const B = window.BTC, st = this.state;
+    const d = D.ins[idx];
+    if (!d) return null;
+    const out = { d: d, error: null };
+    try {
+      if (d.algo === 'legacy') out.r = B.sighashLegacy(D.tx, idx, d.scriptCode, d.shByte);
+      else if (d.algo === 'v0') out.r = B.sighashV0(D.tx, idx, d.scriptCode, d.value, d.shByte);
+      else if (d.algo === 'taproot') {
+        const leaf = d.tap.leaves[Number(d.raw.leafIdx) || 0];
+        out.r = B.sighashTaproot(D.tx, idx, D.ins.map((x) => ({ value: x.value, script: x.spk })), d.shByte, {
+          scriptPath: d.raw.tapPath === 'script',
+          leafHash: leaf ? B.fromHex(leaf.hash) : null,
+          annex: this.hexOr(d.raw.annex),
+          codesepPos: d.raw.codesep ? parseInt(d.raw.codesep, 10) : null
+        });
+        out.leaf = leaf;
+      } else out.error = 'no signature-hash algorithm is defined for this output type';
+    } catch (e) { out.error = e.message; }
+    return out;
+  }
+
+  signingJson(D, idx) {
+    const B = window.BTC, st = this.state;
+    const p = this.signPack(D, idx);
+    if (!p || !p.r) return JSON.stringify({ error: (p && p.error) || 'nothing to sign' }, null, 2);
+    const d = p.d;
+    const j = {
+      tool: 'txcraft/1', network: st.network, input: idx,
+      txid: d.txid, vout: d.vout, amount: d.value,
+      scriptPubKey: B.toHex(d.spk), spendType: d.inner,
+      sighash: d.shLabel, sighashByte: '0x' + d.shByte.toString(16).padStart(2, '0'),
+      algorithm: d.algo === 'taproot' ? 'Schnorr/BIP340' : 'ECDSA/secp256k1',
+      sighashAlgorithm: d.algo === 'legacy' ? 'legacy' : d.algo === 'v0' ? 'BIP143' : 'BIP341',
+      scriptCode: d.scriptCode.length ? B.toHex(d.scriptCode) : null,
+      redeemScript: d.redeem.length ? B.toHex(d.redeem) : null,
+      witnessScript: d.wscript.length ? B.toHex(d.wscript) : null,
+      preimage: p.r.preimage ? B.toHex(p.r.preimage) : null,
+      digest: B.toHex(p.r.digest),
+      z: p.r.z,
+      unsignedTx: D.ser.hex
+    };
+    if (d.algo === 'taproot') {
+      j.tapInternalKey = d.raw.internal || null;
+      j.tapMerkleRoot = d.tap.root || null;
+      j.tapOutputKey = d.tap.outputKey || null;
+      j.tapPath = d.raw.tapPath;
+      if (p.leaf) { j.tapLeafHash = p.leaf.hash; j.tapLeafScript = B.toHex(p.leaf.script); j.tapControlBlock = p.leaf.control; }
+    }
+    return JSON.stringify(j, null, 2);
+  }
+
+  /* ── signature import ───────────────────────────────────── */
+  assemble(D, idx, sigHex, pubHex) {
+    const B = window.BTC;
+    const d = D.ins[idx];
+    if (!d) return;
+    const sig = B.fromHex(sigHex), pub = B.fromHex(pubHex || '');
+    const push = (b) => B.pushData(b);
+    /* CHECKMULTISIG pops one extra element (BIP 147 requires it empty) — insert the
+       dummy whenever the executed script is a bare multisig. */
+    const wsMulti = d.wscript.length && B.classify(d.wscript).type === 'multisig';
+    const rdMulti = d.redeem.length && B.classify(d.redeem).type === 'multisig';
+    let scriptSig = '', witness = [];
+    if (d.inner === 'p2wpkh') witness = [sigHex, pubHex];
+    else if (d.inner === 'p2wpkh-in-p2sh') { scriptSig = B.toHex(push(d.redeem)); witness = [sigHex, pubHex]; }
+    else if (d.inner === 'p2wsh') witness = wsMulti ? ['', sigHex, B.toHex(d.wscript)] : [sigHex, B.toHex(d.wscript)];
+    else if (d.inner === 'p2wsh-in-p2sh') { scriptSig = B.toHex(push(d.redeem)); witness = wsMulti ? ['', sigHex, B.toHex(d.wscript)] : [sigHex, B.toHex(d.wscript)]; }
+    else if (d.inner === 'p2tr') witness = d.raw.tapPath === 'script' && d.tap.leaves.length
+      ? [sigHex, B.toHex(d.tap.leaves[Number(d.raw.leafIdx) || 0].script), d.tap.leaves[Number(d.raw.leafIdx) || 0].control]
+      : [sigHex];
+    else if (d.type === 'p2pk') scriptSig = B.toHex(push(sig));
+    else if (d.type === 'p2sh') scriptSig = B.toHex(B.concat(rdMulti ? [new Uint8Array([0x00]), push(sig), push(d.redeem)] : [push(sig), push(d.redeem)]));
+    else if (d.type === 'multisig') scriptSig = B.toHex(B.concat([new Uint8Array([0x00]), push(sig)]));
+    else scriptSig = B.toHex(B.concat([push(sig), push(pub)]));
+    this.setState((s) => ({ finals: Object.assign({}, s.finals, { [idx]: { scriptSig: scriptSig, witness: witness } }) }));
+  }
+
+  importPsbt(D) {
+    const B = window.BTC;
+    try {
+      const p = B.parsePsbt(this.state.fin.psbt || this.state.psbtIn);
+      const sigs = B.extractSignatures(p);
+      const finals = Object.assign({}, this.state.finals);
+      const report = [];
+      sigs.forEach((s, n) => {
+        if (s.finalScriptSig || s.finalWitness) {
+          finals[n] = { scriptSig: s.finalScriptSig || '', witness: s.finalWitness || [] };
+          report.push('input ' + n + ': finalised (scriptSig ' + ((s.finalScriptSig || '').length / 2) + ' B, witness ' + ((s.finalWitness || []).length) + ' items)');
+        } else if (s.partialSigs.length || s.tapKeySig || s.tapScriptSigs.length) {
+          const first = s.partialSigs[0];
+          if (first) { this.assemble(D, n, first.signature, first.pubkey); report.push('input ' + n + ': ECDSA signature added for ' + first.pubkey.slice(0, 16) + '…'); }
+          else if (s.tapKeySig) { finals[n] = { scriptSig: '', witness: [s.tapKeySig] }; report.push('input ' + n + ': Schnorr key-path signature added'); }
+          else report.push('input ' + n + ': ' + s.tapScriptSigs.length + ' tapscript signature(s) — assemble the witness manually');
+        } else report.push('input ' + n + ': no signature');
+      });
+      this.setState({ finals: finals, psbtMsg: { tone: 'ok', text: 'PSBT v' + p.version + ' imported. ' + report.join(' · ') } });
+    } catch (e) { this.setState({ psbtMsg: { tone: 'err', text: e.message } }); }
+  }
+
+  /* ── validation ─────────────────────────────────────────── */
+  checks(D) {
+    const B = window.BTC, st = this.state, out = [];
+    const add = (tone, badge, text) => out.push({ tone: tone, badge: badge, text: text });
+    if (!D.ins.length) add('err', 'INVALID', 'A transaction must have at least one input.');
+    if (!D.outs.length) add('err', 'INVALID', 'A transaction must have at least one output.');
+    D.ins.forEach((d, n) => {
+      d.problems.forEach((p) => add('err', 'INVALID', 'Input ' + n + ': ' + p));
+      if (!d.txid) add('err', 'INVALID', 'Input ' + n + ' has no previous txid.');
+      if (!d.spk.length) add('warn', 'INCOMPLETE', 'Input ' + n + ' has no prevout scriptPubKey — the spend type and scriptCode cannot be resolved.');
+      if (d.algo === 'v0' && !d.value) add('err', 'INVALID', 'Input ' + n + ' is SegWit v0 but has no prevout amount — BIP 143 commits to it.');
+      if (d.algo === 'taproot' && D.ins.some((x) => !x.value)) add('warn', 'INCOMPLETE', 'Input ' + n + ' is Taproot: BIP 341 commits to every input amount, so all of them must be filled in.');
+      if (d.inner === 'p2wsh' && !d.wscript.length) add('warn', 'INCOMPLETE', 'Input ' + n + ' is P2WSH with no witnessScript.');
+      if (d.type === 'p2sh' && !d.redeem.length) add('warn', 'INCOMPLETE', 'Input ' + n + ' is P2SH with no redeemScript.');
+      if (d.sequence < 0xfffffffe) add('info', 'SIGNALS RBF', 'Input ' + n + ' sequence 0x' + d.sequence.toString(16) + ' opts into replace-by-fee (BIP 125).');
+      if (d.inner === 'p2wpkh' && d.raw.manualSS && d.raw.scriptSig) add('warn', 'NON-STANDARD', 'Input ' + n + ' is native SegWit but carries a scriptSig — that makes the input invalid under BIP 141 cleanstack rules.');
+      if (d.raw.acp) add('info', 'NOTE', 'Input ' + n + ' uses ANYONECANPAY — other inputs are not committed to and can still be added.');
+      if ((d.shByte & 0x1f) === 3 && n >= D.outs.length) {
+        if (d.algo === 'taproot') add('err', 'INVALID', 'Input ' + n + ' uses SIGHASH_SINGLE but there is no output at index ' + n + ' — BIP 341 rejects the signature outright.');
+        else if (d.algo === 'v0') add('warn', 'CHECK', 'Input ' + n + ' uses SIGHASH_SINGLE with no output at index ' + n + ' — BIP 143 commits to a zero hash there; confirm that is intended.');
+        else add('warn', 'FOOTGUN', 'Input ' + n + ' uses SIGHASH_SINGLE with no output at index ' + n + ' — the legacy algorithm signs the constant 1, and that signature can be replayed onto any transaction.');
+      }
+      if (d.algo === 'taproot' && d.shByte === 0x80) add('err', 'INVALID', 'Input ' + n + ': DEFAULT combined with ANYONECANPAY gives sighash byte 0x80, which BIP 341 rejects.');
+      if (d.algo !== 'taproot' && d.algo !== 'unknown' && d.shByte === 0x00) add('warn', 'NON-STANDARD', 'Input ' + n + ': sighash byte 0x00 is only defined for Taproot — ECDSA signatures need 0x01–0x83.');
+    });
+    const seen = {};
+    D.ins.forEach((d, n) => { const k = d.txid + ':' + d.vout; if (seen[k] !== undefined) add('err', 'INVALID', 'Inputs ' + seen[k] + ' and ' + n + ' spend the same outpoint.'); seen[k] = n; });
+    let nulldata = 0;
+    D.outs.forEach((d, n) => {
+      d.problems.forEach((p) => add('err', 'INVALID', 'Output ' + n + ': ' + p));
+      if (!d.script.length) add('err', 'INVALID', 'Output ' + n + ' has an empty scriptPubKey.');
+      if (d.klass.type === 'nulldata') {
+        nulldata++;
+        if (d.script.length > 83) add('warn', 'NON-STANDARD', 'Output ' + n + ' is a ' + d.script.length + '-byte OP_RETURN — Core relays at most 83 bytes by default.');
+        if (d.value > 0) add('warn', 'NON-STANDARD', 'Output ' + n + ' is an OP_RETURN carrying ' + d.value + ' sat — those satoshis are unspendable.');
+      } else {
+        /* Core's GetDustThreshold at 3 sat/vB: 294 P2WPKH · 330 P2WSH and P2TR · 540 P2SH · 546 P2PKH/legacy */
+        const dust = d.klass.type === 'p2wpkh' ? 294 : d.klass.type === 'p2tr' || d.klass.type === 'p2wsh' ? 330 : d.klass.type === 'p2sh' ? 540 : 546;
+        if (d.value === 0) add('warn', 'NON-STANDARD', 'Output ' + n + ' has zero value.');
+        else if (d.value < dust) add('warn', 'NON-STANDARD', 'Output ' + n + ' is below the ' + dust + ' sat dust threshold for ' + (d.klass.label || 'this type') + '.');
+      }
+      if (d.klass.type === 'nonstandard') add('warn', 'NON-STANDARD', 'Output ' + n + ' does not match any standard script template — it will not relay, but is consensus-valid.');
+      if (d.klass.type === 'witness_unknown') add('warn', 'ANYONECANSPEND', 'Output ' + n + ' is an unknown witness version — currently spendable by anyone under consensus.');
+      B.scriptToParts(d.script).forEach((p) => { if (p.type === 'push' && p.minimal === false && p.data && p.data.length <= 1 && !p.pushdata) add('warn', 'NON-STANDARD', 'Output ' + n + ' uses a non-minimal push.'); });
+    });
+    if (nulldata > 1) add('warn', 'NON-STANDARD', nulldata + ' OP_RETURN outputs — Core relays only one per transaction.');
+    if (D.fee < 0) add('err', 'INVALID', 'Outputs exceed inputs by ' + (-D.fee).toLocaleString() + ' sat.');
+    else if (D.fee === 0 && D.inTotal > 0) add('warn', 'NON-STANDARD', 'Zero fee — will not relay without a package payer.');
+    else if (D.rate > 0 && D.rate < 1) add('warn', 'BELOW MINRELAY', 'Fee rate ' + D.rate.toFixed(3) + ' sat/vB is under the 1 sat/vB default minimum.');
+    if (D.rate > 1000) add('warn', 'CHECK', 'Fee rate ' + D.rate.toFixed(1) + ' sat/vB is unusually high.');
+    if (st.version < 1 || st.version > 3) add('warn', 'NON-STANDARD', 'nVersion ' + st.version + ' is outside the 1–3 range Core relays (still consensus-valid).');
+    const lt = Number(st.locktime) || 0;
+    if (lt > 0 && D.ins.every((d) => d.sequence === 0xffffffff)) add('warn', 'NO EFFECT', 'nLockTime is set but every input has sequence 0xffffffff, which disables it.');
+    if (lt > 0) add('info', lt < 500000000 ? 'HEIGHT LOCK' : 'TIME LOCK', lt < 500000000 ? 'Locked until block height ' + lt + '.' : 'Locked until ' + new Date(lt * 1000).toISOString().replace('T', ' ').slice(0, 19) + ' UTC.');
+    if (D.m.vsize > 100000) add('warn', 'NON-STANDARD', 'Virtual size ' + D.m.vsize + ' vB exceeds the 100 kvB standardness limit.');
+    if (!out.length) add('ok', 'CONSENSUS VALID', 'No structural or policy problems found. This tool checks structure and policy only — it does not execute scripts.');
+    return out;
+  }
+
+  /* ── panels ─────────────────────────────────────────────── */
+  chainBlocks(D) {
+    const B = window.BTC, st = this.state, ch = st.chain;
+    const live = ch.status === 'open';
+    const statusTone = live ? 'ok' : ch.status === 'error' ? 'err' : ch.status === 'connecting' ? 'warn' : 'info';
+    const statusText = live ? 'Connected to ' + ch.url + (ch.height ? ' — chain tip ' + ch.height.toLocaleString() : '')
+      : ch.status === 'connecting' ? 'Opening the socket…'
+        : ch.status === 'error' ? ch.note || 'connection failed'
+          : 'Not connected. Fulcrum needs ws_port (plain) or wss_port (TLS) set in fulcrum.conf.';
+    const feeRows = Object.keys(ch.fees).map((k) => ({ blocks: k, rate: ch.fees[k] }));
+    const blocks = [{
+      kicker: 'FULCRUM', title: 'Local index server',
+      badges: [{ label: live ? 'live' : ch.status, bg: live ? ACC8 : N9, fg: live ? ACC3 : N4 }].concat(ch.busy ? [{ label: ch.busy + '…', bg: WARN_BG, fg: WARN_TXT }] : []),
+      edge: live ? ACC7 : N8, headBg: live ? 'rgba(145,132,217,0.10)' : 'rgba(145,132,217,0.05)',
+      actions: [{ label: live ? 'Disconnect' : 'Connect', on: () => (live ? this.disconnectChain() : this.connectChain()) }],
+      groups: [{
+        title: 'Connection', note: 'the browser speaks the Electrum protocol over WebSocket — no RPC credentials are ever stored here',
+        fields: [
+          this.text('WebSocket URL', ch.url, (e) => this.chainSet({ url: e.target.value }), { gc: '1 / -1', ph: 'ws://127.0.0.1:50003', hint: 'Fulcrum defaults: 50003 plain, 50004 TLS. Regtest and signet instances usually run on their own ports.' }),
+          this.stat(live ? 'CONNECTED' : ch.status.toUpperCase(), statusText, statusTone),
+          this.btns('', [
+            { label: live ? 'Reconnect' : 'Connect', on: () => this.connectChain(), color: ACC, border: ACC },
+            { label: 'Disconnect', on: () => this.disconnectChain() },
+            { label: 'Refresh fee estimates', on: () => this.chainDo('fee estimates', async (c, FX) => this.chainSet({ fees: await FX.feeRates(c) })) },
+            { label: 'Refresh tip', on: () => this.chainDo('tip', async (c) => { const h = await c.call('blockchain.headers.subscribe', []); this.chainSet({ height: h.height }); }) }
+          ]),
+          this.ro('Server', ch.server ? (Array.isArray(ch.server) ? ch.server.join('  ·  protocol ') : String(ch.server)) : '', { kind: 'meta', gc: 'auto' }),
+          this.ro('Chain tip', ch.height == null ? '' : String(ch.height), { kind: 'amount', gc: 'auto' }),
+          this.ro('Relay fee', ch.relayfee == null ? '' : (ch.relayfee * 1e8 / 1000).toFixed(3) + ' sat/vB', { kind: 'amount', gc: 'auto' }),
+          ch.banner ? this.ro('Banner', ch.banner, { h: '90px', kind: 'meta' }) : this.note('')
+        ].filter((f) => !f.isNote || f.text)
+      }]
+    }];
+    blocks.push({
+      kicker: 'LOAD', title: 'Pull a transaction off the chain',
+      badges: ch.raw ? [{ label: (ch.raw.length / 2) + ' bytes', bg: N9, fg: N4 }] : [],
+      edge: N8, headBg: 'rgba(145,132,217,0.06)', actions: [],
+      groups: [{
+        title: 'By txid', note: 'load an existing transaction into the crafter, then change only what you need',
+        fields: [
+          this.text('Transaction id', ch.txid, (e) => this.chainSet({ txid: e.target.value.trim() }), { gc: '1 / -1', ph: '64 hex characters' }),
+          this.chk('Hydrate prevouts after loading (amounts and scriptPubKeys)', ch.hydrate, (e) => this.chainSet({ hydrate: e.target.checked })),
+          this.btns('', [
+            { label: 'Fetch raw hex', on: () => this.fetchTx(false) },
+            { label: 'Load into the crafter', on: () => this.fetchTx(true), color: ACC, border: ACC },
+            { label: 'Send to the Inspector', on: () => { this.patch('inspect', { src: 'paste', hex: ch.raw }); this.set('tab', 'inspect'); } },
+            { label: 'Hydrate every input now', on: () => this.hydrateAll() }
+          ]),
+          this.ro('Raw transaction', ch.raw, { h: '120px', kind: 'script', id: 'chain-raw' }),
+          this.note('Loading keeps the original scriptSig and witness bytes under Finalize, so the craft re-serialises byte-for-byte until you change something. The Inputs tab stays clean for editing.')
+        ]
+      }]
+    });
+    const utxoFields = ch.utxos.length
+      ? ch.utxos.map((u, n) => this.ro('UTXO ' + n, u.txid + ':' + u.vout + '\n' + u.value.toLocaleString() + ' sat   ·   height ' + (u.height || 'mempool'), { h: '58px', kind: 'txid', id: 'utxo' + n }))
+        .concat([this.btns('Add to the craft', ch.utxos.map((u, n) => ({ label: '+ #' + n + '  ' + u.value.toLocaleString() + ' sat', on: () => this.addUtxo(u), color: ACC, border: ACC })))])
+      : [this.note('No unspent outputs loaded yet.')];
+    blocks.push({
+      kicker: 'FUND', title: 'Inputs from an address',
+      badges: ch.balance ? [{ label: (ch.balance.confirmed || 0).toLocaleString() + ' sat confirmed', bg: ACC8, fg: ACC3 }, { label: (ch.balance.unconfirmed || 0).toLocaleString() + ' sat pending', bg: N9, fg: N4 }] : [],
+      edge: N8, headBg: 'rgba(145,132,217,0.06)', actions: [],
+      groups: [
+        {
+          title: 'Address', note: 'indexed by the reversed SHA256 of its scriptPubKey, the way Electrum servers key everything',
+          fields: [
+            this.text('Address', ch.addr, (e) => this.chainSet({ addr: e.target.value.trim() }), { gc: '1 / -1', ph: 'tb1q… · bcrt1p… · 2N… ' }),
+            this.ro('Script hash', (() => { try { return B.FX.addressScriptHash(ch.addr, st.network); } catch (e) { return ''; } })(), { kind: 'hash' }),
+            this.btns('', [
+              { label: 'List unspent', on: () => this.loadUtxos(), color: ACC, border: ACC },
+              { label: 'History', on: () => this.loadHistory() },
+              { label: 'Add every UTXO as an input', on: () => ch.utxos.forEach((u) => this.addUtxo(u)) }
+            ])
+          ]
+        },
+        { title: 'Unspent outputs', note: '', fields: utxoFields },
+        ch.history.length ? { title: 'History', note: '', fields: [this.ro('Transactions', ch.history.map((h) => h.tx_hash + '   height ' + h.height).join('\n'), { h: '140px', kind: 'txid' })] } : null
+      ].filter(Boolean)
+    });
+    blocks.push({
+      kicker: 'FEES', title: 'Estimates and broadcast',
+      badges: [], edge: N8, headBg: 'rgba(145,132,217,0.06)', actions: [],
+      groups: [
+        {
+          title: 'Fee estimates', note: 'estimatefee returns BTC/kB; converted here to sat/vB',
+          fields: feeRows.length ? [
+            this.ro('By confirmation target', feeRows.map((f) => f.blocks.padStart(2, ' ') + ' blocks   ' + (f.rate == null ? 'no estimate' : f.rate.toFixed(3) + ' sat/vB   →   ' + Math.round(f.rate * D.effVsize).toLocaleString() + ' sat at ' + D.effVsize + ' vB ' + (D.allSigned ? 'signed' : 'est. signed'))).join('\n'), { h: '110px', kind: 'amount' }),
+            this.btns('Apply to the last output', feeRows.filter((f) => f.rate).map((f) => ({ label: f.blocks + 'b · ' + f.rate.toFixed(1) + ' sat/vB', on: () => this.applyFeeRate(D, f.rate) })))
+          ] : [this.note('Connect and refresh to pull estimates.')]
+        },
+        {
+          title: 'Broadcast', note: 'the only call that changes anything — everything else is read-only',
+          fields: [
+            this.ro('Final transaction', D.finalHex, { h: '100px', kind: 'script' }),
+            this.stat(D.hasFinals ? 'SIGNED DATA PRESENT' : 'UNSIGNED', D.hasFinals ? 'Inputs carry unlocking data; this is what will be sent.' : 'No signatures have been imported — broadcasting now would be rejected.', D.hasFinals ? 'ok' : 'warn'),
+            this.btns('', [{ label: 'Broadcast via Fulcrum', on: () => this.broadcast(D.finalHex), color: live ? ACC : N6, border: live ? ACC : N8 }])
+          ]
+        },
+        {
+          title: 'Activity', note: '',
+          fields: [ch.log.length
+            ? this.ro('Log', ch.log.map((l) => l.t + '  ' + l.text).join('\n'), { h: '160px', kind: 'meta' })
+            : this.note('Nothing yet.')]
+        }
+      ]
+    });
+    return blocks;
+  }
+
+  txBlocks(D) {
+    const st = this.state;
+    const lt = Number(st.locktime) || 0;
+    return [{
+      kicker: 'HEADER', title: 'Transaction envelope',
+      badges: [{ label: window.BTC.NETWORKS[st.network].label, bg: ACC8, fg: ACC3 }, { label: D.ser.segwit ? 'SegWit serialisation' : 'Legacy serialisation', bg: '#292b31', fg: N4 }],
+      edge: N8, headBg: 'rgba(145,132,217,0.06)', actions: [],
+      groups: [
+        {
+          title: 'Version & locktime', note: '',
+          fields: [
+            this.num('nVersion', st.version, (e) => this.set('version', parseInt(e.target.value, 10) || 0), { hint: 'v2 enables BIP 68 relative locktime. Any 32-bit value is consensus-valid.' }),
+            this.num('nLockTime', st.locktime, (e) => this.set('locktime', parseInt(e.target.value, 10) || 0), { hint: lt === 0 ? 'zero — no locktime' : lt < 500000000 ? 'below 500,000,000: read as a block height' : 'at or above 500,000,000: read as a Unix timestamp' }),
+            this.btns('Locktime presets', [
+              { label: 'None', on: () => this.set('locktime', 0) },
+              { label: 'Height 800000', on: () => this.set('locktime', 800000) },
+              { label: 'Now', on: () => this.set('locktime', Math.floor(Date.now() / 1000)) },
+              { label: '500000000 boundary', on: () => this.set('locktime', 500000000) },
+              { label: st.chain.height ? 'Chain tip ' + st.chain.height : 'Chain tip (connect first)', on: () => st.chain.height && this.set('locktime', st.chain.height), color: st.chain.height ? ACC : N6, border: st.chain.height ? ACC : N8 }
+            ]),
+            this.seg('Serialisation', st.serial, [['auto', 'Automatic'], ['legacy', 'Legacy'], ['segwit', 'SegWit']], (v) => this.set('serial', v), { hint: 'Automatic emits the BIP 144 marker only when some input carries a witness.' }),
+            this.seg('PSBT version', String(st.psbtVer), [['0', 'v0 — BIP 174'], ['2', 'v2 — BIP 370']], (v) => this.set('psbtVer', Number(v)), { hint: 'v2 keeps inputs and outputs individually addressable instead of anchoring on a global unsigned transaction.' })
+          ]
+        },
+        {
+          title: 'PSBT v2 modifiable flags', note: 'only serialised when PSBT v2 is selected',
+          fields: [
+            this.chk('Inputs modifiable', st.modInputs, (e) => this.set('modInputs', e.target.checked)),
+            this.chk('Outputs modifiable', st.modOutputs, (e) => this.set('modOutputs', e.target.checked)),
+            this.chk('Has SIGHASH_SINGLE', st.modSingle, (e) => this.set('modSingle', e.target.checked))
+          ]
+        },
+        {
+          title: 'Totals', note: '',
+          fields: [
+            this.stat(D.fee < 0 ? 'OVERSPEND' : 'FEE', D.inTotal.toLocaleString() + ' sat in − ' + D.outTotal.toLocaleString() + ' sat out = ' + D.fee.toLocaleString() + ' sat  (' + D.rate.toFixed(2) + ' sat/vB over ' + D.effVsize + ' vB ' + (D.allSigned ? 'signed' : 'est. signed — unsigned skeleton is ' + D.m.vsize + ' vB') + ')', D.fee < 0 ? 'err' : 'ok'),
+            this.ro('Unsigned transaction hex', D.ser.hex, { h: '140px', id: 'tx-hex', kind: 'script' }),
+            this.ro('Candidate TXID', D.txid, { id: 'tx-txid', kind: 'txid' }),
+            this.btns('Export', [
+              { label: 'Save .hex', on: () => this.download('unsigned-tx.hex', D.ser.hex, 'text/plain') },
+              { label: 'Save .txn (binary)', on: () => this.download('unsigned-tx.txn', window.BTC.fromHex(D.ser.hex), 'application/octet-stream') },
+              { label: 'Copy JSON summary', on: () => this.copy(JSON.stringify({ network: st.network, version: st.version, locktime: st.locktime, txid: D.txid, hex: D.ser.hex, vsize: D.m.vsize, fee: D.fee }, null, 2), 'sumjson') }
+            ])
+          ]
+        }
+      ]
+    }];
+  }
+
+  inputBlocks(D) {
+    const B = window.BTC, st = this.state;
+    const forensic = st.mode === 'forensic';
+    return D.ins.map((d, n) => {
+      const i = d.raw;
+      const groups = [];
+      groups.push({
+        title: 'Outpoint', note: '',
+        fields: [
+          this.text('Previous TXID', i.txid, (e) => this.upIn(n, { txid: e.target.value.trim() }), { gc: '1 / -1', ph: '64 hex characters, display order', hint: d.txid ? 'serialised reversed: ' + B.toHex(B.rev(B.fromHex(d.txid))).slice(0, 32) + '…' : '' }),
+          this.num('vout', i.vout, (e) => this.upIn(n, { vout: e.target.value })),
+          this.text('nSequence', i.sequence, (e) => this.upIn(n, { sequence: e.target.value.trim() }), { hint: d.sequence === 0xffffffff ? 'final — disables locktime for this input' : d.sequence < 0xfffffffe ? 'signals RBF' : 'locktime enabled, no RBF' }),
+          this.num('Prevout amount (sat)', i.amount, (e) => this.upIn(n, { amount: e.target.value }), { hint: d.algo === 'v0' || d.algo === 'taproot' ? 'committed to by the signature' : 'not committed to by a legacy signature' }),
+          this.btns('Sequence presets', [
+            { label: 'ffffffff final', on: () => this.upIn(n, { sequence: 'ffffffff' }) },
+            { label: 'fffffffe locktime', on: () => this.upIn(n, { sequence: 'fffffffe' }) },
+            { label: 'fffffffd RBF', on: () => this.upIn(n, { sequence: 'fffffffd' }) },
+            { label: '00000010 CSV 16 blocks', on: () => this.upIn(n, { sequence: '00000010' }) },
+            { label: '00400001 CSV 512 s', on: () => this.upIn(n, { sequence: '00400001' }) }
+          ]),
+          this.btns('From the chain', [
+            { label: 'Fetch prevout', on: () => this.fetchPrevout(n), color: ACC, border: ACC },
+            { label: 'Fetch every input', on: () => this.hydrateAll() },
+            { label: 'Chain tools', on: () => this.set('tab', 'chain') }
+          ], { hint: st.chain.status === 'open' ? 'Fulcrum is live — this fills the amount, the scriptPubKey and the funding transaction.' : 'Connect a Fulcrum server on the Chain tab to enable these.', hintTone: st.chain.status === 'open' ? ACC4 : N6 })
+        ]
+      });
+      groups.push({
+        title: 'Previous output', note: d.address ? 'resolves to ' + d.address : '',
+        fields: [
+          this.area('Prevout scriptPubKey (hex)', i.spk, (e) => this.upIn(n, { spk: e.target.value.trim() }), { h: '52px', ph: '76a914…88ac  ·  0014…  ·  5120…', hint: d.klass.label + (d.spk.length ? ' — ' + d.spk.length + ' bytes' : '') }),
+          this.sel('Spending template', i.template, [['auto', 'Auto-detect · ' + d.klass.label], ['p2pk', 'P2PK'], ['p2pkh', 'P2PKH'], ['p2sh', 'P2SH'], ['p2wpkh', 'P2WPKH'], ['p2wsh', 'P2WSH'], ['p2tr', 'P2TR'], ['multisig', 'Bare multisig'], ['nonstandard', 'Custom']].map((o) => ({ v: o[0], l: o[1] })), (e) => this.upIn(n, { template: e.target.value })),
+          this.text('Derive from address', '', (e) => { try { this.upIn(n, { spk: B.toHex(B.addressToScript(e.target.value, st.network).script) }); } catch (err) { /* typing */ } }, { ph: 'paste an address to fill the scriptPubKey' }),
+          this.ro('Resolved scriptPubKey ASM', B.scriptToAsm(d.spk), { id: 'in' + n + '-asm' })
+        ]
+      });
+      if (d.algo === 'legacy' || d.type === 'p2sh') {
+        groups.push({
+          title: 'Legacy spending data', note: 'the signature is computed over the scriptCode below',
+          fields: [
+            this.area('redeemScript (hex)', i.redeem, (e) => this.upIn(n, { redeem: e.target.value.trim() }), { h: '52px', hint: d.redeem.length ? B.scriptToAsm(d.redeem) : 'required for P2SH inputs' }),
+            this.area('Previous transaction (hex)', i.prevTx, (e) => this.upIn(n, { prevTx: e.target.value.trim() }), { h: '52px', hint: 'PSBT_IN_NON_WITNESS_UTXO — a legacy signer needs the whole funding transaction' }),
+            this.ro('scriptCode', d.scriptCode.length ? B.toHex(d.scriptCode) : '', { hint: d.scriptCodeNote, id: 'in' + n + '-sc' })
+          ]
+        });
+      }
+      if (d.algo === 'v0') {
+        groups.push({
+          title: 'SegWit v0 spending data', note: 'BIP 143 — the signature commits to the input amount',
+          fields: [
+            this.area('witnessScript (hex)', i.wscript, (e) => this.upIn(n, { wscript: e.target.value.trim() }), { h: '52px', hint: d.wscript.length ? B.scriptToAsm(d.wscript) : 'required for P2WSH' }),
+            this.area('redeemScript (hex)', i.redeem, (e) => this.upIn(n, { redeem: e.target.value.trim() }), { h: '52px', hint: 'only for P2SH-wrapped SegWit' }),
+            this.ro('scriptCode', d.scriptCode.length ? B.toHex(d.scriptCode) : '', { hint: d.scriptCodeNote, id: 'in' + n + '-sc' })
+          ]
+        });
+      }
+      if (d.algo === 'taproot' || i.internal) {
+        const leaves = d.tap.leaves;
+        groups.push({
+          title: 'Taproot', note: d.tap.error ? d.tap.error : 'BIP 341 / BIP 342',
+          fields: [
+            this.text('Internal key (x-only, 32 B)', i.internal, (e) => this.upIn(n, { internal: e.target.value.trim() }), { gc: '1 / -1', ph: 'cc8a4bc64d897bddc5fbc2f670f7a8ba0b386779106cf1223c6fc5d7cd6fc115' }),
+            this.area('Script tree leaves', i.leaves, (e) => this.upIn(n, { leaves: e.target.value }), { h: '70px', ph: 'one leaf per line —  scripthex   |   depth:scripthex   |   depth:leafversion:scripthex', hint: leaves.length ? leaves.length + ' leaf/leaves, tree depth from the depth column or auto-balanced' : 'leave empty for a key-path-only output' }),
+            this.seg('Spend path', i.tapPath, [['key', 'Key path'], ['script', 'Script path']], (v) => this.upIn(n, { tapPath: v })),
+            this.num('Leaf index to spend', i.leafIdx, (e) => this.upIn(n, { leafIdx: e.target.value }), { hint: leaves[Number(i.leafIdx) || 0] ? leaves[Number(i.leafIdx) || 0].asm : '' }),
+            this.ro('Merkle root', d.tap.root || '(none — key path only)', { id: 'in' + n + '-root' }),
+            this.ro('TapTweak t', d.tap.tweak || '', { id: 'in' + n + '-tweak' }),
+            this.ro('Output key Q (x-only)', d.tap.outputKey ? d.tap.outputKey + '   parity ' + d.tap.parity : '', { id: 'in' + n + '-q' }),
+            this.ro('Derived scriptPubKey', d.tap.spk ? B.toHex(d.tap.spk) : '', { hint: d.tap.spk ? 'address ' + B.addressFromScript(d.tap.spk, st.network) : '', id: 'in' + n + '-tspk' })
+          ].concat(leaves.map((l, li) => this.ro('Leaf ' + li + ' — hash / control block', l.hash + '\ncontrol ' + l.control + '\ndepth ' + l.depth + '  version 0x' + l.version.toString(16) + '\n' + l.asm, { h: '110px', id: 'in' + n + '-leaf' + li })))
+            .concat([this.text('Annex (hex)', i.annex, (e) => this.upIn(n, { annex: e.target.value.trim() }), { hint: 'rarely used; must start with byte 0x50 to be a valid annex on-chain — sets the annex bit in spend_type' }),
+            this.text('OP_CODESEPARATOR position', i.codesep, (e) => this.upIn(n, { codesep: e.target.value.trim() }), { ph: 'blank = 0xffffffff', hint: 'script-path only' })])
+        });
+      }
+      groups.push({
+        title: 'Signature hash', note: d.algo === 'legacy' ? 'legacy algorithm' : d.algo === 'v0' ? 'BIP 143' : d.algo === 'taproot' ? 'BIP 341 tagged hash' : 'unknown output type',
+        fields: [
+          this.sel('SIGHASH', i.sighash, (d.algo === 'taproot' ? ['DEFAULT', 'ALL', 'NONE', 'SINGLE'] : ['ALL', 'NONE', 'SINGLE']).map((v) => ({ v: v, l: 'SIGHASH_' + v })), (e) => this.upIn(n, { sighash: e.target.value })),
+          this.chk('ANYONECANPAY', i.acp, (e) => this.upIn(n, { acp: e.target.checked })),
+          this.ro('Hash type byte', '0x' + d.shByte.toString(16).padStart(2, '0') + '  —  ' + d.shLabel, { gc: 'auto', id: 'in' + n + '-sh' }),
+          this.stat(d.algo === 'taproot' ? 'SCHNORR' : 'ECDSA', d.algo === 'taproot' ? 'BIP 340 Schnorr over the BIP 341 tagged digest' : 'ECDSA over the ' + (d.algo === 'v0' ? 'BIP 143' : 'legacy') + ' double-SHA256 digest', 'info')
+        ]
+      });
+      if (forensic) {
+        groups.push({
+          title: 'Forensic overrides', note: 'these bytes go into the transaction exactly as written',
+          fields: [
+            this.chk('Set scriptSig manually', i.manualSS, (e) => this.upIn(n, { manualSS: e.target.checked })),
+            this.chk('Set witness manually', i.manualW, (e) => this.upIn(n, { manualW: e.target.checked })),
+            this.area('scriptSig (hex)', i.scriptSig, (e) => this.upIn(n, { scriptSig: e.target.value.trim() }), { h: '52px', hint: i.scriptSig ? B.scriptToAsm(this.hexOr(i.scriptSig)) : 'empty scriptSig' }),
+            this.area('Witness stack', i.witness, (e) => this.upIn(n, { witness: e.target.value }), { h: '52px', ph: 'one hex item per line or space separated', hint: 'an empty line makes an empty witness item' })
+          ]
+        });
+      }
+      return {
+        kicker: 'INPUT #' + n, title: d.txid ? d.txid.slice(0, 12) + '…:' + d.vout : 'unset outpoint',
+        badges: [{ label: d.klass.label, bg: ACC8, fg: ACC3 }, { label: d.algo === 'taproot' ? 'BIP 341' : d.algo === 'v0' ? 'BIP 143' : d.algo === 'legacy' ? 'legacy sighash' : 'unknown', bg: '#292b31', fg: N4 }, { label: d.value.toLocaleString() + ' sat', bg: '#292b31', fg: N4 }],
+        edge: d.problems.length ? '#5a3742' : N8, headBg: 'rgba(145,132,217,0.06)',
+        actions: [
+          { label: 'Duplicate', on: () => this.setState((s) => ({ inputs: s.inputs.slice(0, n + 1).concat([Object.assign({}, s.inputs[n])], s.inputs.slice(n + 1)) })) },
+          { label: 'Remove', on: () => this.setState((s) => ({ inputs: s.inputs.filter((_, j) => j !== n) })) }
+        ],
+        groups: groups
+      };
+    });
+  }
+
+  outputBlocks(D) {
+    const B = window.BTC, st = this.state;
+    return D.outs.map((d, n) => {
+      const o = d.raw;
+      const groups = [{
+        title: 'Value and construction', note: '',
+        fields: [
+          this.num('Amount (sat)', o.amount, (e) => this.upOut(n, { amount: e.target.value }), { hint: (Number(o.amount) / 1e8).toFixed(8) + ' BTC' }),
+          this.seg('Creation mode', o.mode, [['address', 'Address'], ['template', 'Script template'], ['raw', 'Raw script'], ['opreturn', 'OP_RETURN']], (v) => this.upOut(n, { mode: v }))
+        ]
+      }];
+      if (o.mode === 'address') {
+        groups.push({
+          title: 'Address', note: 'validated against ' + B.NETWORKS[st.network].label,
+          fields: [this.text('Address', o.address, (e) => this.upOut(n, { address: e.target.value.trim() }), { gc: '1 / -1', ph: 'bc1… · tb1… · bcrt1… · 1… · 3… · m/n… · 2…', hint: d.problems[0] || (d.script.length ? d.klass.label + ' — ' + B.toHex(d.script) : '') })]
+        });
+      } else if (o.mode === 'template') {
+        groups.push({
+          title: 'Template', note: '',
+          fields: [
+            this.sel('Script template', o.tpl, [['p2pk', 'P2PK'], ['p2pkh', 'P2PKH'], ['p2sh', 'P2SH'], ['p2wpkh', 'P2WPKH'], ['p2wsh', 'P2WSH'], ['p2sh-p2wpkh', 'P2SH-P2WPKH'], ['p2sh-p2wsh', 'P2SH-P2WSH'], ['multisig', 'Bare multisig'], ['p2tr', 'Taproot'], ['checksig', 'PUSH pubkey · OP_CHECKSIG'], ['checksigverify', 'PUSH pubkey · OP_CHECKSIGVERIFY'], ['cltv', 'CLTV · pubkey · CHECKSIG'], ['csv', 'CSV · pubkey · CHECKSIG']].map((x) => ({ v: x[0], l: x[1] })), (e) => this.upOut(n, { tpl: e.target.value })),
+            this.text('Public key (hex)', o.pubkey, (e) => this.upOut(n, { pubkey: e.target.value.trim() }), { ph: '33 or 65 bytes' }),
+            this.text('Hash override (hex)', o.hash, (e) => this.upOut(n, { hash: e.target.value.trim() }), { hint: 'skip the pubkey and give the hash160/sha256 directly' }),
+            this.area('Inner script (hex)', o.script, (e) => this.upOut(n, { script: e.target.value.trim() }), { h: '52px', hint: 'for P2SH / P2WSH — hashed into the output' }),
+            this.num('m (multisig)', o.m, (e) => this.upOut(n, { m: e.target.value })),
+            this.area('Public keys (multisig)', o.keys, (e) => this.upOut(n, { keys: e.target.value }), { h: '52px', ph: 'one per line' }),
+            this.text('Locktime value (CLTV/CSV)', o.lock, (e) => this.upOut(n, { lock: e.target.value.trim() })),
+            this.text('Taproot internal key', o.internal, (e) => this.upOut(n, { internal: e.target.value.trim() })),
+            this.text('Taproot merkle root', o.merkle, (e) => this.upOut(n, { merkle: e.target.value.trim() }))
+          ]
+        });
+      } else if (o.mode === 'raw') {
+        groups.push({
+          title: 'Raw script', note: 'unrestricted — any byte sequence is allowed',
+          fields: [
+            this.area('ASM', o.asm, (e) => { const v = e.target.value; let hex = o.hex; try { hex = B.toHex(B.asmToScript(v)); } catch (err) { /* mid-typing */ } this.upOut(n, { asm: v, hex: hex, src: 'asm' }); }, { h: '70px', ph: 'OP_2 02ab… 03cd… OP_2 OP_CHECKMULTISIG' }),
+            this.area('HEX', o.hex, (e) => { const v = e.target.value.trim(); let asm = o.asm; try { asm = B.scriptToAsm(B.fromHex(v)); } catch (err) { /* mid-typing */ } this.upOut(n, { hex: v, asm: asm, src: 'hex' }); }, { h: '52px' }),
+            this.stat(d.klass.label, d.script.length + ' bytes · ' + (d.address || 'no address form'), d.klass.type === 'nonstandard' ? 'warn' : 'info')
+          ]
+        });
+      } else {
+        groups.push({
+          title: 'OP_RETURN', note: 'data carrier — provably unspendable',
+          fields: [
+            this.seg('Encoding', o.opEnc, [['utf8', 'UTF-8'], ['ascii', 'ASCII'], ['hex', 'HEX'], ['int', 'Integer']], (v) => this.upOut(n, { opEnc: v })),
+            this.area('Payload', o.opPayload, (e) => this.upOut(n, { opPayload: e.target.value }), { h: '52px' }),
+            this.seg('Push encoding', o.opForce, [['auto', 'Minimal'], ['direct', 'Direct'], ['pushdata1', 'PUSHDATA1'], ['pushdata2', 'PUSHDATA2'], ['pushdata4', 'PUSHDATA4']], (v) => this.upOut(n, { opForce: v })),
+            this.chk('Allow multiple pushes (one per line)', o.opMulti, (e) => this.upOut(n, { opMulti: e.target.checked })),
+            this.chk('Force non-minimal push', o.opNonMin, (e) => this.upOut(n, { opNonMin: e.target.checked })),
+            this.text('Extra opcode after OP_RETURN (hex)', o.opPrefix, (e) => this.upOut(n, { opPrefix: e.target.value.trim() }))
+          ]
+        });
+      }
+      groups.push({
+        title: 'Result', note: '',
+        fields: [
+          this.ro('scriptPubKey', d.script.length ? B.toHex(d.script) : '', { id: 'out' + n + '-hex', kind: 'script' }),
+          this.ro('ASM', d.asm, { id: 'out' + n + '-asm', kind: 'opcode' }),
+          this.ro('Address', d.address || '(no address encoding for this script)', { id: 'out' + n + '-addr', kind: 'address' })
+        ]
+      });
+      return {
+        kicker: 'OUTPUT #' + n, title: d.value.toLocaleString() + ' sat',
+        badges: [{ label: d.klass.label, bg: ACC8, fg: ACC3 }, { label: d.script.length + ' B', bg: '#292b31', fg: N4 }],
+        edge: d.problems.length ? '#5a3742' : N8, headBg: 'rgba(145,132,217,0.06)',
+        actions: [
+          { label: 'Duplicate', on: () => this.setState((s) => ({ outputs: s.outputs.slice(0, n + 1).concat([Object.assign({}, s.outputs[n])], s.outputs.slice(n + 1)) })) },
+          { label: 'Remove', on: () => this.setState((s) => ({ outputs: s.outputs.filter((_, j) => j !== n) })) }
+        ],
+        groups: groups
+      };
+    });
+  }
+
+  opretBlocks(D) {
+    const B = window.BTC, st = this.state, o = st.opret;
+    let script = new Uint8Array(0), err = null, payloadHex = '';
+    try {
+      const src = o.enc === 'file' ? o.fileHex : o.payload;
+      const pl = this.payloads(o.enc, src, o.multi);
+      payloadHex = pl.map((p) => B.toHex(p)).join(' ');
+      script = B.opReturn(pl, { force: o.force === 'auto' ? null : o.force, nonMinimal: o.nonMinimal, prefixOp: o.prefix ? parseInt(o.prefix, 16) : null });
+    } catch (e) { err = e.message; }
+    return [{
+      kicker: 'BUILDER', title: 'OP_RETURN payload',
+      badges: [{ label: script.length + ' bytes', bg: script.length > 83 ? '#4a3f22' : ACC8, fg: script.length > 83 ? '#f0dfae' : ACC3 }],
+      edge: N8, headBg: 'rgba(145,132,217,0.06)', actions: [],
+      groups: [
+        {
+          title: 'Payload', note: '',
+          fields: [
+            this.seg('Encoding', o.enc, [['utf8', 'UTF-8'], ['ascii', 'ASCII'], ['hex', 'HEX'], ['int', 'Integer'], ['file', 'File bytes']], (v) => this.patch('opret', { enc: v })),
+            o.enc === 'file'
+              ? this.F('File', { label: 'File', on: (e) => { const f = e.target.files && e.target.files[0]; if (!f) return; const rd = new FileReader(); rd.onload = () => this.patch('opret', { fileHex: B.toHex(new Uint8Array(rd.result)) }); rd.readAsArrayBuffer(f); }, hint: o.fileHex ? (o.fileHex.length / 2) + ' bytes loaded' : 'the raw bytes become the push payload' })
+              : this.area('Payload', o.payload, (e) => this.patch('opret', { payload: e.target.value }), { h: '70px', ph: o.multi ? 'one push per line' : 'text, hex or an integer' }),
+            this.chk('Allow multiple pushes (one per line)', o.multi, (e) => this.patch('opret', { multi: e.target.checked }))
+          ]
+        },
+        {
+          title: 'Push encoding', note: 'deliberately non-minimal encodings are allowed and flagged, not blocked',
+          fields: [
+            this.seg('Length prefix', o.force, [['auto', 'Minimal'], ['direct', 'Direct'], ['pushdata1', 'OP_PUSHDATA1'], ['pushdata2', 'OP_PUSHDATA2'], ['pushdata4', 'OP_PUSHDATA4']], (v) => this.patch('opret', { force: v })),
+            this.chk('Force non-minimal push for small values', o.nonMinimal, (e) => this.patch('opret', { nonMinimal: e.target.checked })),
+            this.text('Custom opcode after OP_RETURN (hex)', o.prefix, (e) => this.patch('opret', { prefix: e.target.value.trim() }), { ph: 'e.g. 51 for OP_1' })
+          ]
+        },
+        {
+          title: 'Result', note: err || '',
+          fields: [
+            this.ro('Payload bytes', payloadHex),
+            this.ro('Script hex', B.toHex(script), { id: 'opret-hex' }),
+            this.ro('Script ASM', B.scriptToAsm(script), { id: 'opret-asm' }),
+            this.stat(script.length > 83 ? 'NON-STANDARD' : 'STANDARD', script.length > 83 ? script.length + ' bytes exceeds the 83-byte default data-carrier limit — consensus-valid, not relayed by default nodes.' : script.length + ' bytes fits inside the default data-carrier size.', script.length > 83 ? 'warn' : 'ok'),
+            this.btns('Use it', [
+              { label: 'Add as a new output', on: () => this.setState((s) => ({ outputs: s.outputs.concat([Object.assign(newOutput(), { mode: 'raw', src: 'hex', hex: B.toHex(script), asm: B.scriptToAsm(script) })]), tab: 'out' })), color: ACC, border: ACC },
+              { label: 'Copy hex', on: () => this.copy(B.toHex(script), 'opret-copy') }
+            ])
+          ]
+        }
+      ]
+    }];
+  }
+
+  signBlocks(D) {
+    const B = window.BTC, st = this.state;
+    const idx = Math.min(st.signIdx, Math.max(0, D.ins.length - 1));
+    const p = this.signPack(D, idx);
+    const blocks = [{
+      kicker: 'SELECT', title: 'Signing package',
+      badges: [], edge: N8, headBg: 'rgba(145,132,217,0.06)', actions: [],
+      groups: [{
+        title: 'Input', note: 'nothing here touches a private key — this is the data a signer needs',
+        fields: [this.seg('', String(idx), D.ins.map((d, n) => [String(n), '#' + n + ' ' + (d.txid ? d.txid.slice(0, 8) : 'unset') + ':' + d.vout]), (v) => this.set('signIdx', Number(v)), { gc: '1 / -1' })]
+      }]
+    }];
+    if (!p) return blocks;
+    const d = p.d;
+    const groups = [{
+      title: 'Transaction context', note: '',
+      fields: [
+        this.ro('Outpoint', (d.txid || '—') + ':' + d.vout, { gc: 'auto', kind: 'txid' }),
+        this.ro('Amount', d.value.toLocaleString() + ' sat', { gc: 'auto', kind: 'amount' }),
+        this.ro('scriptPubKey', B.toHex(d.spk), { kind: 'script' }),
+        this.ro('redeemScript', d.redeem.length ? B.toHex(d.redeem) : '', { kind: 'script' }),
+        this.ro('witnessScript', d.wscript.length ? B.toHex(d.wscript) : '', { kind: 'script' }),
+        this.ro('scriptCode', d.scriptCode.length ? B.toHex(d.scriptCode) : '', { hint: d.scriptCodeNote, kind: 'script' }),
+        this.ro('nSequence', '0x' + (d.sequence >>> 0).toString(16).padStart(8, '0'), { gc: 'auto', kind: 'sequence' }),
+        this.ro('Hash type', '0x' + d.shByte.toString(16).padStart(2, '0') + ' — ' + d.shLabel, { gc: 'auto', kind: 'meta' })
+      ]
+    }];
+    if (p.error) groups.push({ title: 'Problem', note: '', fields: [this.stat('CANNOT COMPUTE', p.error, 'err')] });
+    if (p.r) {
+      const r = p.r;
+      groups.push({
+        title: d.algo === 'taproot' ? 'BIP 341 SigMsg' : d.algo === 'v0' ? 'BIP 143 preimage' : 'Legacy signing serialisation',
+        note: r.warning || '',
+        fields: [
+          r.sigMsg ? this.ro('SigMsg (without the 0x00 epoch)', B.toHex(r.sigMsg), { h: '120px', id: 'sig-msg', kind: 'script' }) : this.note(''),
+          this.ro(d.algo === 'taproot' ? 'Tagged-hash input (epoch ‖ SigMsg)' : 'Preimage', r.preimage ? B.toHex(r.preimage) : '(not applicable)', { h: '140px', id: 'sig-pre', kind: 'script' }),
+          r.sha256 ? this.ro('SHA256 (single)', B.toHex(r.sha256), { id: 'sig-sha', kind: 'hash' }) : this.note(''),
+          this.ro(d.algo === 'taproot' ? 'TapSighash (tagged)' : 'SHA256d — the digest signed', B.toHex(r.digest), { id: 'sig-dig', kind: 'hash' }),
+          this.ro('z  (the integer handed to the signer)', r.z, { id: 'sig-z', kind: 'hash' }),
+          r.hashPrevouts ? this.ro('hashPrevouts / hashSequence / hashOutputs', r.hashPrevouts + '\n' + r.hashSequence + '\n' + r.hashOutputs, { h: '80px', kind: 'hash' }) : this.note('')
+        ].filter((f) => f.isNote !== true || f.text)
+      });
+      if (d.algo === 'taproot') {
+        groups.push({
+          title: 'Taproot key material', note: '',
+          fields: [
+            this.ro('Internal key P (x-only)', d.raw.internal || ''),
+            this.ro('Merkle root', d.tap.root || '(key path only)'),
+            this.ro('TapTweak t', d.tap.tweak || ''),
+            this.ro('Output key Q', (d.tap.outputKey || '') + (d.tap.outputKey ? '   parity ' + d.tap.parity : '')),
+            p.leaf ? this.ro('TapLeaf hash', p.leaf.hash) : this.note(''),
+            p.leaf ? this.ro('Control block', p.leaf.control) : this.note('')
+          ].filter((f) => f.isNote !== true || f.text)
+        });
+      }
+      groups.push({
+        title: 'Export for an external signer', note: 'sign elsewhere, then return through Finalize',
+        fields: [
+          this.ro('Signing JSON', this.signingJson(D, idx), { h: '220px', id: 'sig-json' }),
+          this.btns('Export', [
+            { label: 'Copy preimage', on: () => this.copy(r.preimage ? B.toHex(r.preimage) : '', 'x1') },
+            { label: 'Copy digest', on: () => this.copy(B.toHex(r.digest), 'x2') },
+            { label: 'Copy z', on: () => this.copy(r.z, 'x3'), color: ACC, border: ACC },
+            { label: 'Copy signing JSON', on: () => this.copy(this.signingJson(D, idx), 'x4') },
+            { label: 'Save signing-package.json', on: () => this.download('signing-input-' + idx + '.json', this.signingJson(D, idx), 'application/json') }
+          ])
+        ]
+      });
+    }
+    blocks.push({
+      kicker: 'INPUT #' + idx, title: 'Everything the signer needs',
+      badges: [{ label: d.algo === 'taproot' ? 'Schnorr · BIP 341' : d.algo === 'v0' ? 'ECDSA · BIP 143' : 'ECDSA · legacy', bg: ACC8, fg: ACC3 }],
+      edge: N8, headBg: 'rgba(145,132,217,0.06)', actions: [], groups: groups
+    });
+    return blocks;
+  }
+
+  psbtBlocks(D) {
+    const B = window.BTC, st = this.state;
+    let built = null, err = null;
+    try { built = B.buildPsbt(this.psbtModel(D), st.psbtVer); } catch (e) { err = e.message; }
+    let decoded = null, dErr = null;
+    if (st.psbtIn.trim()) { try { decoded = B.describePsbt(B.parsePsbt(st.psbtIn)); } catch (e) { dErr = e.message; } }
+    const dumpRows = (label, list) => list.map((entries, n) => this.ro(label + ' ' + n, entries.map((e) => e.name + '  key ' + e.type + (e.keyData ? ':' + e.keyData : '') + '  → ' + e.value).join('\n') || '(empty map)', { h: '110px' }));
+    const blocks = [{
+      kicker: 'EXPORT', title: 'PSBT v' + st.psbtVer,
+      badges: [{ label: st.psbtVer === 2 ? 'BIP 370' : 'BIP 174', bg: ACC8, fg: ACC3 }],
+      edge: N8, headBg: 'rgba(145,132,217,0.06)',
+      actions: [{ label: 'Switch to v' + (st.psbtVer === 0 ? '2' : '0'), on: () => this.set('psbtVer', st.psbtVer === 0 ? 2 : 0) }],
+      groups: [{
+        title: 'Built from the current craft', note: err || (st.psbtVer === 2 ? 'inputs and outputs stay individually addressable and modifiable' : 'anchored on a global unsigned transaction'),
+        fields: built ? [
+          this.ro('Base64', built.base64, { h: '120px', id: 'psbt-b64', kind: 'psbt' }),
+          this.ro('Hex', built.hex, { h: '120px', id: 'psbt-hex', kind: 'script' }),
+          this.btns('Export', [
+            { label: 'Copy Base64', on: () => this.copy(built.base64, 'p1'), color: ACC, border: ACC },
+            { label: 'Copy hex', on: () => this.copy(built.hex, 'p2') },
+            { label: 'Save .psbt (binary)', on: () => this.download('craft.psbt', built.bytes, 'application/octet-stream') },
+            { label: 'Save .psbt.txt (base64)', on: () => this.download('craft.psbt.txt', built.base64, 'text/plain') }
+          ])
+        ] : [this.stat('ERROR', err || 'could not build', 'err')]
+      }]
+    }];
+    blocks.push({
+      kicker: 'DECODE', title: 'Inspect any PSBT',
+      badges: decoded ? [{ label: 'v' + decoded.version, bg: ACC8, fg: ACC3 }] : [],
+      edge: N8, headBg: 'rgba(145,132,217,0.06)', actions: [],
+      groups: [{
+        title: 'Paste base64 or hex', note: dErr || '',
+        fields: [this.area('PSBT', st.psbtIn, (e) => this.set('psbtIn', e.target.value), { h: '90px', ph: 'cHNidP8B…' })]
+          .concat(decoded ? [
+            this.ro('Global map', decoded.global.map((e) => e.name + '  key ' + e.type + '  → ' + e.value).join('\n') || '(empty)', { h: '110px' })
+          ].concat(dumpRows('Input map', decoded.inputs)).concat(dumpRows('Output map', decoded.outputs))
+            .concat([this.ro('Signature status', decoded.signatures.map((s) => 'input ' + s.index + ': ' + (s.finalised ? 'FINALISED' : s.partial.length ? s.partial.map((x) => '✓ ' + x.kind + ' ' + x.pubkey.slice(0, 12) + '…') .join(', ') : '—')).join('\n'), { h: '90px' })]) : [])
+      }]
+    });
+    return blocks;
+  }
+
+  finalBlocks(D) {
+    const B = window.BTC, st = this.state, f = st.fin;
+    const target = Math.min(f.target, Math.max(0, D.ins.length - 1));
+    const blocks = [{
+      kicker: 'IMPORT', title: 'Bring signatures back in',
+      badges: st.psbtMsg ? [{ label: st.psbtMsg.tone === 'err' ? 'ERROR' : 'OK', bg: TONE[st.psbtMsg.tone].bg, fg: TONE[st.psbtMsg.tone].fg }] : [],
+      edge: N8, headBg: 'rgba(145,132,217,0.06)', actions: [],
+      groups: [
+        {
+          title: 'Source', note: st.psbtMsg ? st.psbtMsg.text : 'the crafter never signs — it only accepts what a signer returns',
+          fields: [
+            this.seg('Format', f.mode, [['psbt', 'Signed PSBT'], ['der', 'DER signature'], ['rs', 'r / s'], ['schnorr', 'Schnorr'], ['json', 'Signing JSON']], (v) => this.patch('fin', { mode: v }), { gc: '1 / -1' }),
+            this.seg('Target input', String(target), D.ins.map((d, n) => [String(n), '#' + n]), (v) => this.patch('fin', { target: Number(v) }), { gc: '1 / -1' })
+          ]
+        }
+      ]
+    }];
+    const g = { title: 'Payload', note: '', fields: [] };
+    if (f.mode === 'psbt') {
+      g.fields.push(this.area('Signed PSBT (base64 or hex)', f.psbt, (e) => this.patch('fin', { psbt: e.target.value }), { h: '110px' }));
+      g.fields.push(this.btns('Apply', [{ label: 'Import and compare', on: () => this.importPsbt(D), color: ACC, border: ACC }]));
+    } else if (f.mode === 'der') {
+      g.fields.push(this.text('DER signature (hex, with or without the sighash byte)', f.der, (e) => this.patch('fin', { der: e.target.value.trim() }), { gc: '1 / -1', ph: '3044022…01' }));
+      g.fields.push(this.text('Public key (hex)', f.pubkey, (e) => this.patch('fin', { pubkey: e.target.value.trim() })));
+      let parsed = null, pErr = null;
+      try { if (f.der) parsed = B.derParse(f.der); } catch (e) { pErr = e.message; }
+      if (parsed) {
+        g.fields.push(this.ro('r', parsed.r));
+        g.fields.push(this.ro('s', parsed.s));
+        g.fields.push(this.ro('low-S form of s', parsed.sLow));
+        g.fields.push(this.ro('n − s', parsed.nMinusS));
+        const rc = B.rCandidates(parsed.r);
+        g.fields.push(this.ro('R candidates from r', rc.error ? rc.error : 'even Y  ' + rc.even + '\nodd  Y  ' + rc.odd, { h: '70px' }));
+        g.fields.push(this.stat(parsed.isLowS ? 'LOW-S' : 'HIGH-S', (parsed.sighashByte != null ? 'sighash byte 0x' + parsed.sighashByte.toString(16).padStart(2, '0') + ' — ' + B.sighashLabel(parsed.sighashByte) + '. ' : '') + (parsed.notes.length ? parsed.notes.join('; ') : 'canonical DER.'), parsed.notes.length ? 'warn' : 'ok'));
+      } else if (pErr) g.fields.push(this.stat('MALFORMED', pErr, 'err'));
+      g.fields.push(this.btns('Apply', [{ label: 'Build scriptSig / witness for input ' + target, on: () => { try { this.assemble(D, target, f.der, f.pubkey); this.setState({ psbtMsg: { tone: 'ok', text: 'Signature placed on input ' + target + '.' } }); } catch (e) { this.setState({ psbtMsg: { tone: 'err', text: e.message } }); } }, color: ACC, border: ACC }]));
+    } else if (f.mode === 'rs') {
+      g.fields.push(this.text('r (32-byte hex)', f.r, (e) => this.patch('fin', { r: e.target.value.trim() })));
+      g.fields.push(this.text('s (32-byte hex)', f.s, (e) => this.patch('fin', { s: e.target.value.trim() })));
+      g.fields.push(this.text('SIGHASH byte (hex)', f.sh, (e) => this.patch('fin', { sh: e.target.value.trim() })));
+      g.fields.push(this.text('Public key (hex)', f.pubkey, (e) => this.patch('fin', { pubkey: e.target.value.trim() })));
+      let der = '', dErr = null;
+      try { if (f.r && f.s) der = B.toHex(B.derFromRS(f.r, f.s, parseInt(f.sh || '01', 16))); } catch (e) { dErr = e.message; }
+      g.fields.push(this.ro('DER encoding', der || (dErr || ''), { id: 'fin-der' }));
+      g.fields.push(this.btns('Apply', [
+        { label: 'Copy DER', on: () => this.copy(der, 'fd') },
+        { label: 'Place on input ' + target, on: () => { if (der) this.assemble(D, target, der, f.pubkey); }, color: ACC, border: ACC }
+      ]));
+    } else if (f.mode === 'schnorr') {
+      g.fields.push(this.text('Schnorr signature (64 or 65 bytes hex)', f.schnorr, (e) => this.patch('fin', { schnorr: e.target.value.trim() }), { gc: '1 / -1', hint: '65 bytes means a trailing non-default sighash byte' }));
+      g.fields.push(this.btns('Apply', [{ label: 'Place on input ' + target, on: () => this.assemble(D, target, f.schnorr, ''), color: ACC, border: ACC }]));
+    } else {
+      g.fields.push(this.area('Signer JSON  { "input": 0, "der": "…", "pubkey": "…" }  or  { "r": …, "s": …, "sighash": "01" }', f.json, (e) => this.patch('fin', { json: e.target.value }), { h: '130px' }));
+      g.fields.push(this.btns('Apply', [{
+        label: 'Import', color: ACC, border: ACC, on: () => {
+          try {
+            const j = JSON.parse(f.json);
+            const list = Array.isArray(j) ? j : [j];
+            list.forEach((x) => {
+              const n = Number(x.input) || 0;
+              const der = x.der || (x.r && x.s ? B.toHex(B.derFromRS(x.r, x.s, parseInt(x.sighash || '01', 16))) : x.signature);
+              if (der) this.assemble(D, n, der, x.pubkey || '');
+            });
+            this.setState({ psbtMsg: { tone: 'ok', text: 'Imported ' + list.length + ' signature record(s).' } });
+          } catch (e) { this.setState({ psbtMsg: { tone: 'err', text: e.message } }); }
+        }
+      }]));
+    }
+    blocks[0].groups.push(g);
+    const finRows = D.ins.map((d, n) => {
+      const fin = st.finals[n];
+      return this.ro('Input ' + n, fin ? 'scriptSig ' + (fin.scriptSig || '(empty)') + '\nwitness   ' + ((fin.witness || []).join('\n          ') || '(empty)') : '— not signed', { h: '90px' });
+    });
+    blocks.push({
+      kicker: 'FINALIZE', title: 'Final transaction',
+      badges: [{ label: Object.keys(st.finals).length + ' / ' + D.ins.length + ' inputs carry data', bg: ACC8, fg: ACC3 }],
+      edge: N8, headBg: 'rgba(145,132,217,0.06)',
+      actions: [{ label: 'Clear all signatures', on: () => this.setState({ finals: {} }) }],
+      groups: [
+        { title: 'Per-input unlocking data', note: 'edit manually in Forensic mode on the Inputs tab', fields: finRows },
+        {
+          title: 'Serialised result', note: '',
+          fields: [
+            this.ro('Final transaction hex', D.finalHex, { h: '150px', id: 'fin-hex', kind: 'script' }),
+            this.ro('TXID', D.finalTxid, { gc: 'auto', kind: 'txid' }),
+            this.ro('WTXID', B.wtxid(D.finalTx), { gc: 'auto', kind: 'txid' }),
+            this.stat('SIZE', D.finalM.size + ' B · ' + D.finalM.vsize + ' vB · ' + D.finalM.weight + ' WU · fee ' + D.fee.toLocaleString() + ' sat · ' + (D.finalM.vsize ? (D.fee / D.finalM.vsize).toFixed(2) : '0') + ' sat/vB', 'info'),
+            this.btns('Export', [
+              { label: 'Copy final hex', on: () => this.copy(D.finalHex, 'fh'), color: ACC, border: ACC },
+              { label: 'Save final.hex', on: () => this.download('final-tx.hex', D.finalHex, 'text/plain') },
+              { label: 'Save final.txn', on: () => this.download('final-tx.txn', B.fromHex(D.finalHex), 'application/octet-stream') },
+              { label: st.chain.status === 'open' ? 'Broadcast via Fulcrum' : 'Broadcast (connect first)', on: () => this.broadcast(D.finalHex), color: st.chain.status === 'open' ? WARN_FG : N6, border: st.chain.status === 'open' ? WARN_FG : N8 }
+            ])
+          ]
+        }
+      ]
+    });
+    return blocks;
+  }
+
+  validBlocks(D) {
+    const list = this.checks(D);
+    const counts = list.reduce((a, c) => { a[c.tone] = (a[c.tone] || 0) + 1; return a; }, {});
+    return [{
+      kicker: 'REPORT', title: 'Structural and policy review',
+      badges: [
+        { label: (counts.err || 0) + ' invalid', bg: counts.err ? TONE.err.bg : '#292b31', fg: counts.err ? TONE.err.fg : N4 },
+        { label: (counts.warn || 0) + ' non-standard', bg: counts.warn ? TONE.warn.bg : '#292b31', fg: counts.warn ? TONE.warn.fg : N4 },
+        { label: (counts.info || 0) + ' notes', bg: '#292b31', fg: N4 }
+      ],
+      edge: counts.err ? '#5a3742' : N8, headBg: 'rgba(145,132,217,0.06)', actions: [],
+      groups: [{ title: 'Findings', note: 'consensus validity and relay policy are reported separately — nothing here blocks you from crafting', fields: list.map((c) => this.stat(c.badge, c.text, c.tone)) }]
+    }];
+  }
+
+  rpcBlocks(D) {
+    const B = window.BTC, st = this.state;
+    let psbt = '';
+    try { psbt = B.buildPsbt(this.psbtModel(D), st.psbtVer).base64; } catch (e) { psbt = ''; }
+    const cli = st.network === 'mainnet' ? 'bitcoin-cli' : st.network === 'regtest' ? 'bitcoin-cli -regtest' : st.network === 'signet' ? 'bitcoin-cli -signet' : st.network === 'testnet4' ? 'bitcoin-cli -testnet4' : 'bitcoin-cli -testnet';
+    const cmds = [
+      ['Decode the unsigned transaction', cli + ' decoderawtransaction ' + D.ser.hex],
+      ['Decode the PSBT', cli + ' decodepsbt ' + psbt],
+      ['Analyse what the PSBT still needs', cli + ' analyzepsbt ' + psbt],
+      ['Ask the wallet to sign it', cli + ' walletprocesspsbt ' + psbt],
+      ['Finalise and extract', cli + ' finalizepsbt ' + psbt],
+      ['Dry-run acceptance', cli + ' testmempoolaccept \'["' + D.finalHex + '"]\''],
+      ['Broadcast', cli + ' sendrawtransaction ' + D.finalHex],
+      ['Fund missing inputs from the wallet', cli + ' walletcreatefundedpsbt \'[]\' \'[{"address":"…","amount":0.0001}]\''],
+      ['Regtest: mine a block to yourself', 'bitcoin-cli -regtest -generate 1']
+    ];
+    return [{
+      kicker: 'HELPERS', title: 'Bitcoin Core commands',
+      badges: [{ label: B.NETWORKS[st.network].label, bg: ACC8, fg: ACC3 }],
+      edge: N8, headBg: 'rgba(145,132,217,0.06)', actions: [],
+      groups: [{
+        title: 'Copy and paste', note: 'the page never holds RPC credentials or opens a connection — it writes the commands for you',
+        fields: cmds.map((c, n) => this.ro(c[0], c[1], { h: '90px', id: 'rpc' + n }))
+      }]
+    }];
+  }
+
+  /* ── custom panels ──────────────────────────────────────── */
+  labVals(D) {
+    const B = window.BTC, st = this.state, lab = st.lab;
+    let script = new Uint8Array(0), err = null;
+    try { script = lab.src === 'asm' ? B.asmToScript(lab.asm) : B.fromHex(lab.hex); } catch (e) { err = e.message; }
+    const hex = B.toHex(script);
+    const sha = B.toHex(B.sha256(script));
+    const h160 = B.toHex(B.hash160(script));
+    const cp = (v, id) => () => this.copy(v, id);
+    return {
+      labAsm: lab.src === 'asm' ? lab.asm : B.scriptToAsm(script),
+      labHex: lab.src === 'hex' ? lab.hex : hex,
+      opGroups: B.OP_GROUPS.map((g) => ({
+        name: g.name,
+        ops: g.ops.map((name) => ({
+          short: name.replace('OP_', ''), hex: B.OPS[name].toString(16).padStart(2, '0'),
+          border: B.DISABLED.has(name) ? '#5a3742' : 'rgba(233,233,237,0.14)',
+          color: B.DISABLED.has(name) ? '#d99aa8' : '#cfd3e5',
+          push: () => this.patch('lab', { src: 'asm', asm: (lab.src === 'asm' ? lab.asm : B.scriptToAsm(script)).replace(/\s+$/, '') + ' ' + name })
+        }))
+      })),
+      labActions: [
+        { label: 'Clear', on: () => this.patch('lab', { src: 'asm', asm: '', hex: '' }) },
+        { label: 'Add as raw output', on: () => this.setState((s) => ({ outputs: s.outputs.concat([Object.assign(newOutput(), { mode: 'raw', src: 'hex', hex: hex, asm: B.scriptToAsm(script) })]), tab: 'out' })) },
+        { label: 'Set as witnessScript of input 0', on: () => this.upIn(0, { wscript: hex }) },
+        { label: 'Set as redeemScript of input 0', on: () => this.upIn(0, { redeem: hex }) },
+        { label: 'Add as taproot leaf on input 0', on: () => this.setState((s) => ({ inputs: s.inputs.map((x, j) => (j === 0 ? Object.assign({}, x, { leaves: (x.leaves ? x.leaves + '\n' : '') + hex }) : x)) })) }
+      ],
+      labDerived: [
+        { label: 'Length', value: script.length + ' bytes', tone: N4, copy: cp(String(script.length), 'l0') },
+        { label: 'Hex', value: hex || '—', tone: '#e9e9ed', copy: cp(hex, 'l1') },
+        { label: 'SHA256', value: sha, tone: ACC3, copy: cp(sha, 'l2') },
+        { label: 'HASH160', value: h160, tone: ACC3, copy: cp(h160, 'l3') },
+        { label: 'P2SH address', value: B.addressFromScript(B.p2sh(B.fromHex(h160)), st.network), tone: '#e9e9ed', copy: cp(B.addressFromScript(B.p2sh(B.fromHex(h160)), st.network), 'l4') },
+        { label: 'P2WSH address', value: B.addressFromScript(B.p2wsh(B.fromHex(sha)), st.network), tone: '#e9e9ed', copy: cp(B.addressFromScript(B.p2wsh(B.fromHex(sha)), st.network), 'l5') },
+        { label: 'TapLeaf hash (0xc0)', value: B.toHex(B.tapLeafHash(script, 0xc0)), tone: ACC3, copy: cp(B.toHex(B.tapLeafHash(script, 0xc0)), 'l6') },
+        { label: 'Parse status', value: err || 'ok', tone: err ? '#ff9fae' : '#b5abfc', copy: cp(err || 'ok', 'l7') }
+      ],
+      labParts: B.scriptToParts(script).map((p) => ({
+        offset: String(p.start).padStart(4, '0'),
+        name: p.type === 'op' ? p.name : (p.pushdata ? B.OP_NAME[p.pushdata] + ' ' : 'PUSH ' + (p.data ? p.data.length : 0) + ' ') + (p.data && p.data.length ? B.toHex(p.data) : '<empty>'),
+        tone: p.type === 'op' ? (B.DISABLED.has(p.name) ? '#d99aa8' : ACC3) : '#cfd3e5',
+        detail: p.type === 'op' ? '0x' + p.op.toString(16).padStart(2, '0') : (p.minimal === false ? 'non-minimal push' : p.data && p.data.length === 20 ? 'looks like a hash160' : p.data && p.data.length === 32 ? 'looks like a sha256 / x-only key' : p.data && p.data.length === 33 ? 'looks like a compressed pubkey' : '')
+      }))
+    };
+  }
+
+  inspectVals(D) {
+    const B = window.BTC, st = this.state, ins = st.inspect;
+    let marks = D.ser.marks, hex = D.ser.hex, bytes = D.ser.bytes, error = null;
+    if (ins.src === 'final') { const s = B.serializeTx(D.finalTx); marks = s.marks; hex = s.hex; bytes = s.bytes; }
+    if (ins.src === 'paste') {
+      try { const t = B.parseTx(B.fromHex(ins.hex)); const s = B.serializeTx(t); marks = s.marks; hex = s.hex; bytes = s.bytes; }
+      catch (e) { error = e.message; marks = []; hex = ''; bytes = new Uint8Array(0); }
+    }
+    const colorOf = (label) => label.startsWith('in') && label.indexOf('scriptsig') > 0 ? 'rgba(145,132,217,0.30)'
+      : label.startsWith('in') ? 'rgba(145,132,217,0.18)'
+        : label.startsWith('out') ? 'rgba(145,132,217,0.09)'
+          : label.startsWith('wit') ? 'rgba(181,171,252,0.26)'
+            : 'rgba(147,151,171,0.16)';
+    const cap = Math.min(bytes.length, 1024);
+    const paint = new Array(bytes.length).fill(null);
+    marks.forEach((m, n) => { for (let i = m.start; i < m.end && i < bytes.length; i++) paint[i] = n; });
+    const dumpRows = [];
+    for (let off = 0; off < cap; off += 16) {
+      const cells = [], chars = [];
+      for (let i = off; i < Math.min(off + 16, cap); i++) {
+        const mi = paint[i];
+        const sel = mi != null && ins.sel === mi;
+        cells.push({
+          hex: hex.slice(i * 2, i * 2 + 2),
+          bg: sel ? ACC : mi == null ? 'transparent' : colorOf(marks[mi].label),
+          fg: sel ? '#161826' : '#e9e9ed'
+        });
+        const b = bytes[i];
+        chars.push(b >= 32 && b < 127 ? String.fromCharCode(b) : '·');
+      }
+      dumpRows.push({ offset: off.toString(16).padStart(8, '0'), cells: cells, ascii: chars.join('') });
+    }
+    return {
+      legend: LEGEND,
+      dumpRows: dumpRows,
+      dumpNote: bytes.length > cap ? 'first ' + cap + ' of ' + bytes.length + ' bytes · ASCII column on the right' : bytes.length + ' bytes · ASCII column on the right',
+      inspectSources: [['built', 'Unsigned craft'], ['final', 'With signatures'], ['paste', 'Paste hex']].map((s) => ({ l: s[1], on: ins.src === s[0], pick: () => this.patch('inspect', { src: s[0] }) })),
+      inspectPasteMode: ins.src === 'paste',
+      inspectHex: ins.hex,
+      onInspectHex: (e) => this.patch('inspect', { hex: e.target.value.trim() }),
+      inspectSummary: error ? error : bytes.length + ' bytes · ' + marks.length + ' fields' + (ins.sel != null && marks[ins.sel] ? ' · selected ' + marks[ins.sel].label : ''),
+      inspectChunks: marks.map((m, n) => ({
+        hex: hex.slice(m.start * 2, m.end * 2),
+        bg: ins.sel === n ? ACC : colorOf(m.label),
+        fg: ins.sel === n ? '#161826' : '#e9e9ed',
+        ring: ins.sel === n ? '0 0 0 1px ' + ACC3 : 'none',
+        pick: () => this.patch('inspect', { sel: ins.sel === n ? null : n })
+      })),
+      inspectRows: marks.map((m, n) => ({
+        label: m.label, range: m.start + '–' + m.end,
+        desc: (m.meta && m.meta.desc) || '',
+        tone: ins.sel === n ? ACC3 : '#cfd3e5',
+        pick: () => this.patch('inspect', { sel: ins.sel === n ? null : n })
+      }))
+    };
+  }
+
+  vizVals(D) {
+    const st = this.state;
+    const d = D.ins[Math.min(st.signIdx, Math.max(0, D.ins.length - 1))];
+    const algo = d ? d.algo : 'legacy';
+    const variants = algo === 'taproot'
+      ? [['DEFAULT', 0], ['ALL', 1], ['NONE', 2], ['SINGLE', 3], ['ALL|ACP', 0x81], ['NONE|ACP', 0x82], ['SINGLE|ACP', 0x83]]
+      : [['ALL', 1], ['NONE', 2], ['SINGLE', 3], ['ALL|ACP', 0x81], ['NONE|ACP', 0x82], ['SINGLE|ACP', 0x83]];
+    const rows = [
+      ['nVersion', 'always committed', () => true],
+      ['nLockTime', 'always committed', () => true],
+      ['Hash type byte', 'the sighash flag itself', () => true],
+      ['All input outpoints', algo === 'legacy' ? 'the inputs list' : 'sha_prevouts / hashPrevouts', (b) => !(b & 0x80)],
+      ['All input sequences', algo === 'taproot' ? 'BIP 341 keeps every sequence unless ANYONECANPAY' : 'zeroed for NONE and SINGLE', (b) => !(b & 0x80) && (algo === 'taproot' || ((b & 3) !== 2 && (b & 3) !== 3))],
+      ['This input outpoint', '', () => true],
+      ['This input sequence', '', () => true],
+      ['This input amount', algo === 'legacy' ? 'legacy signatures never commit to it' : 'BIP 143/341 commit to the value', () => algo !== 'legacy'],
+      ['Every input amount', 'only BIP 341 covers all of them', (b) => algo === 'taproot' && !(b & 0x80)],
+      ['Every input scriptPubKey', 'sha_scriptpubkeys — BIP 341 only', (b) => algo === 'taproot' && !(b & 0x80)],
+      ['scriptCode of this input', algo === 'taproot' ? 'replaced by the tapleaf commitment' : 'the executed script', () => algo !== 'taproot'],
+      ['All outputs', '', (b) => (b & 3) !== 2 && (b & 3) !== 3],
+      ['The matching output only', 'SIGHASH_SINGLE', (b) => (b & 3) === 3],
+      ['TapLeaf hash', 'script-path spends only', () => algo === 'taproot' && d && d.raw.tapPath === 'script']
+    ];
+    return {
+      vizCols: variants.map((v) => ({ label: v[0], tone: d && d.shByte === v[1] ? ACC : N5 })),
+      vizRows: rows.map((r) => ({
+        label: r[0], note: r[1],
+        cells: variants.map((v) => { const on = r[2](v[1]); return { mark: on ? '✓' : '·', tone: on ? ACC3 : '#4a4d5a' }; })
+      })),
+      vizNote: d ? 'Showing input #' + Math.min(st.signIdx, D.ins.length - 1) + ' — ' + (algo === 'taproot' ? 'BIP 341 tagged sighash' : algo === 'v0' ? 'BIP 143' : 'the legacy algorithm') + '. Its current type is ' + d.shLabel + '.' : ''
+    };
+  }
+
+  /* ── render ─────────────────────────────────────────────── */
+  renderVals() {
+    const B = window.BTC, st = this.state;
+    if (!B || !B.buildPsbt || !B.sighashTaproot || !B.FX) return {
+      panelTitle: 'Loading the Bitcoin engine…', panelNote: 'hashing, script, transaction, PSBT and chain modules',
+      blocks: [], tabs: [], networks: [], modes: [], metrics: [], liveRows: [], panelActions: [], steps: [], legend: [], dumpRows: [],
+      chainLabel: 'Offline', chainTone: N6, chainEdge: 'rgba(233,233,237,0.14)', chainHalo: 'transparent', onChainTab: () => { }
+    };
+    const D = this.derive();
+    const tab = st.tab;
+    let blocks = [], panelTitle = '', panelNote = '', panelActions = [];
+    if (tab === 'chain') {
+      blocks = this.chainBlocks(D); panelTitle = 'Chain';
+      panelNote = 'Talk to a local Fulcrum index server, prefill inputs from real UTXOs, and load an existing transaction to edit.';
+      panelActions = [{ label: st.chain.status === 'open' ? 'Disconnect' : 'Connect', on: () => (st.chain.status === 'open' ? this.disconnectChain() : this.connectChain()) }];
+    }
+    if (tab === 'tx') { blocks = this.txBlocks(D); panelTitle = 'Transaction'; panelNote = 'The envelope every other workspace writes into. Nothing is signed here or anywhere else in this page.'; }
+    if (tab === 'in') {
+      blocks = this.inputBlocks(D); panelTitle = 'Inputs';
+      panelNote = 'One card per UTXO, with the full spending metadata a signer needs for that script type.';
+      panelActions = [{ label: '+ Add input', on: () => this.setState((s) => ({ inputs: s.inputs.concat([newInput(this.props.defaultSequence)]) })) }];
+    }
+    if (tab === 'out') {
+      blocks = this.outputBlocks(D); panelTitle = 'Outputs';
+      panelNote = 'Build from an address, a template, arbitrary script bytes, or an OP_RETURN payload.';
+      panelActions = [{ label: '+ Add output', on: () => this.setState((s) => ({ outputs: s.outputs.concat([newOutput()]) })) }];
+    }
+    if (tab === 'opret') { blocks = this.opretBlocks(D); panelTitle = 'OP_RETURN builder'; panelNote = 'Encode a payload, choose the push form, then drop the result into an output.'; }
+    if (tab === 'sign') { blocks = this.signBlocks(D); panelTitle = 'Signing data'; panelNote = 'The preimage, the digest and z for the selected input — copy them out, sign elsewhere, come back through Finalize.'; }
+    if (tab === 'psbt') { blocks = this.psbtBlocks(D); panelTitle = 'PSBT lab'; panelNote = 'Serialise the craft as a PSBT, or decode any PSBT down to its key–value maps.'; }
+    if (tab === 'final') { blocks = this.finalBlocks(D); panelTitle = 'Finalize'; panelNote = 'Import a signature in any of five shapes; the page assembles scriptSig and witness and serialises the final transaction.'; }
+    if (tab === 'valid') { blocks = this.validBlocks(D); panelTitle = 'Validation'; panelNote = 'Structure, standardness and policy — reported, never enforced.'; }
+    if (tab === 'rpc') { blocks = this.rpcBlocks(D); panelTitle = 'Bitcoin Core RPC'; panelNote = 'Ready-made bitcoin-cli lines for the current craft.'; }
+    if (tab === 'script') { panelTitle = 'Script lab'; panelNote = 'Compose Bitcoin Script from opcodes or raw bytes; everything downstream updates live.'; }
+    if (tab === 'inspect') { panelTitle = 'Inspector'; panelNote = 'Every byte of the serialised transaction, labelled. Click a chunk or a row to pin it.'; }
+    if (tab === 'sighash') { panelTitle = 'Sighash visualiser'; panelNote = 'What each hash type does and does not commit to, for the algorithm this input actually uses.'; }
+
+    const counts = { in: D.ins.length, out: D.outs.length, valid: this.checks(D).filter((c) => c.tone === 'err' || c.tone === 'warn').length };
+    const statusList = this.checks(D);
+    const bad = statusList.filter((c) => c.tone === 'err').length;
+    const warn = statusList.filter((c) => c.tone === 'warn').length;
+    const stTone = bad ? TONE.err : warn ? TONE.warn : TONE.ok;
+    const cl = (id) => (st.copied === id ? 'COPIED' : 'COPY');
+    let psbtB64 = '';
+    try { psbtB64 = B.buildPsbt(this.psbtModel(D), st.psbtVer).base64; } catch (e) { psbtB64 = '(cannot build — ' + e.message + ')'; }
+
+    return Object.assign({
+      networks: NET_ORDER.map((k) => ({ label: B.NETWORKS[k].label, on: st.network === k, pick: () => this.set('network', k) })),
+      modes: [['normal', 'Normal'], ['forensic', 'Forensic']].map((m) => ({ label: m[1], on: st.mode === m[0], pick: () => this.set('mode', m[0]) })),
+      onReset: () => { try { localStorage.removeItem('txcraft.state.v1'); } catch (e) { /* ignore */ } this.setState({ inputs: [newInput()], outputs: [newOutput()], finals: {}, psbtIn: '', psbtMsg: null, locktime: 0, version: 2 }); },
+      tabs: TABS.map((t) => ({
+        label: t[1], count: t[0] === 'in' ? counts.in : t[0] === 'out' ? counts.out : t[0] === 'valid' && counts.valid ? counts.valid : '',
+        border: st.tab === t[0] ? ACC : 'rgba(233,233,237,0.14)',
+        color: st.tab === t[0] ? ACC : '#9397ab',
+        pick: () => this.set('tab', t[0])
+      })),
+      chainLabel: st.chain.status === 'open' ? 'Fulcrum · tip ' + (st.chain.height ? st.chain.height.toLocaleString() : '—') : st.chain.status === 'connecting' ? 'Connecting…' : st.chain.status === 'error' ? 'Chain error' : 'Offline',
+      chainTone: st.chain.status === 'open' ? ACC4 : st.chain.status === 'error' ? ERR_FG : st.chain.status === 'connecting' ? WARN_FG : N6,
+      chainEdge: st.chain.status === 'open' ? ACC7 : 'rgba(233,233,237,0.14)',
+      chainHalo: st.chain.status === 'open' ? 'rgba(145,132,217,0.25)' : 'transparent',
+      onChainTab: () => this.set('tab', 'chain'),
+      steps: (() => {
+        const ready = D.ins.filter((d) => d.txid && d.spk.length).length;
+        const signed = Object.keys(st.finals).length;
+        const mk = (label, detail, state, go) => ({
+          label: label, detail: detail, go: () => this.set('tab', go),
+          dot: state === 2 ? ACC : state === 1 ? ACC7 : N8,
+          halo: state === 2 ? 'rgba(145,132,217,0.22)' : 'transparent',
+          tone: state === 2 ? ACC3 : state === 1 ? N4 : N6,
+          rule: state ? 'rgba(145,132,217,0.35)' : 'rgba(233,233,237,0.14)'
+        });
+        return [
+          mk('Construct', D.ins.length + ' in · ' + D.outs.length + ' out', ready === D.ins.length && D.ins.length ? 2 : ready ? 1 : 0, 'in'),
+          mk('Inspect', D.m.vsize + ' vB', D.ser.hex ? 2 : 0, 'inspect'),
+          mk('Sign data', ready + ' package' + (ready === 1 ? '' : 's'), ready ? 2 : 0, 'sign'),
+          mk('Export', 'PSBT v' + st.psbtVer, ready ? 2 : 0, 'psbt'),
+          mk('Finalize', signed + ' / ' + D.ins.length + ' signed', signed === D.ins.length && signed ? 2 : signed ? 1 : 0, 'final')
+        ];
+      })(),
+      panelTitle: panelTitle, panelNote: panelNote, panelActions: panelActions,
+      blocks: blocks,
+      showLab: tab === 'script', showInspector: tab === 'inspect', showSighashViz: tab === 'sighash',
+      metrics: [
+        { label: 'size', value: D.m.size + ' B', tone: '#e9e9ed' },
+        { label: 'vsize', value: D.m.vsize + ' vB', tone: '#e9e9ed' },
+        { label: D.allSigned ? 'signed' : 'est. signed', value: D.effVsize + ' vB', tone: ACC3 },
+        { label: 'weight', value: D.m.weight + ' WU', tone: N4 },
+        { label: 'in', value: String(D.ins.length), tone: N4 },
+        { label: 'out', value: String(D.outs.length), tone: N4 },
+        { label: 'input total', value: D.inTotal.toLocaleString(), tone: N4 },
+        { label: 'output total', value: D.outTotal.toLocaleString(), tone: N4 },
+        { label: 'fee', value: D.fee.toLocaleString() + ' sat', tone: D.fee < 0 ? '#ff9fae' : ACC3 },
+        { label: 'rate', value: D.rate.toFixed(2) + ' sat/vB', tone: ACC3 }
+      ],
+      statusLabel: bad ? bad + ' invalid · ' + warn + ' non-standard' : warn ? warn + ' non-standard' : 'structurally sound',
+      statusBg: stTone.bg, statusFg: stTone.fg,
+      liveRows: [
+        { label: 'Unsigned', value: D.ser.hex || '—', tone: '#cfd3e5', copy: () => this.copy(D.ser.hex, 'lr1'), copyLabel: cl('lr1') },
+        { label: 'TXID', value: D.txid, tone: ACC3, copy: () => this.copy(D.txid, 'lr2'), copyLabel: cl('lr2') },
+        { label: 'PSBT v' + st.psbtVer, value: psbtB64, tone: '#cfd3e5', copy: () => this.copy(psbtB64, 'lr3'), copyLabel: cl('lr3') }
+      ]
+    }, tab === 'script' ? this.labVals(D) : {}, tab === 'inspect' ? this.inspectVals(D) : {}, tab === 'sighash' ? this.vizVals(D) : {});
+  }
+}
+
+</script>
+</body>
+</html>

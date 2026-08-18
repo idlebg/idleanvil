@@ -3746,6 +3746,11 @@
   <div class="subhead mt-lg">Source &amp; license</div>
   <p>MIT-licensed. Source code, issues and the regression harness live at
   <a href="https://github.com/idlebg/idleanvil" target="_blank" rel="noopener" style="color:var(--accent)">github.com/idlebg/idleanvil</a>.</p>
+  <div class="subhead mt-lg">TXCRAFT — the sibling forge</div>
+  <p>The repo also carries <strong>TXCRAFT</strong>, an independent single-file variant of this
+  workbench forged by Claude Fable through Claude Design — its own engine, its own design system,
+  the same never-signs boundary. <a href="https://idlebg.com/idleanvil/txcraft/" target="_blank" rel="noopener" style="color:var(--accent)">Try it live</a>
+  or read <a href="https://github.com/idlebg/idleanvil/tree/main/variants/txcraft" target="_blank" rel="noopener" style="color:var(--accent)">variants/txcraft</a>.</p>
   <div class="banner mt-lg">${ico('alert', 18)}<div>Everything is computed locally in your browser. Verify any transaction independently
   before broadcasting it on mainnet — this tool is a bench, not an authority.</div></div>`;
 
